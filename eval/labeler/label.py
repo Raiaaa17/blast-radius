@@ -92,27 +92,70 @@ def per_file_command(args, tree: Path) -> list[str]:
     return ["sh", "-c", script]
 
 
+START_GATE = threading.Lock()
+
+
+def memory_available_gb() -> float:
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) / 2**20
+    return 0.0
+
+
+def wait_for_memory(min_free_gb: float) -> None:
+    announced = False
+    while memory_available_gb() < min_free_gb:
+        if not announced:
+            log(f"waiting for {min_free_gb} GB free memory (now {memory_available_gb():.1f} GB)")
+            announced = True
+        time.sleep(10)
+
+
+def container_memory_peak(cidfile: Path) -> int:
+    """memory.peak of the container's cgroup (systemd driver), 0 when unreadable."""
+    try:
+        cid = cidfile.read_text().strip()
+        path = Path(f"/sys/fs/cgroup/system.slice/docker-{cid}.scope/memory.peak")
+        return int(path.read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        return 0
+
+
 def run_suite(args, tree: Path, out_dir: Path, name: str, cpu: str | None) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     os.chmod(out_dir, 0o777)
     report = out_dir / f"{name}.report.json"
+    if args.reuse_reports and report.exists() and not args.per_file:
+        # A run that finished while its labeler was stopped: use its report as is.
+        result = {"returncode": None, "wall": None, "killed": False, "reused": True}
+        result["report"] = json.loads(report.read_text())
+        report.unlink()
+        stream = out_dir / f"{name}.report.jsonl"
+        if stream.exists():
+            stream.unlink()
+        return result
     for stale in (report, out_dir / f"{name}.report.jsonl"):
         if stale.exists():
             stale.unlink()
     container = f"br-eval-label-{os.getpid()}-{name}"
+    cidfile = out_dir / f"{name}.cid"
+    if cidfile.exists():
+        cidfile.unlink()
     command = [
         "docker",
         "run",
         "--rm",
         "--name",
         container,
+        "--cidfile",
+        str(cidfile),
         "--network",
         "none",
     ] + (["--cpuset-cpus", cpu] if cpu else ["--cpus", str(args.cpus)]) + [
         "--memory",
         args.memory,
         "--memory-swap",
-        args.memory,
+        args.memory,  # equal to --memory: no swap at all
         "--pids-limit",
         "512",
         "--user",
@@ -135,17 +178,36 @@ def run_suite(args, tree: Path, out_dir: Path, name: str, cpu: str | None) -> di
     ] + (
         per_file_command(args, tree) if args.per_file else pytest_command(args, f"/out/{name}.report.json")
     )
-    started = time.time()
     killed = False
+    peak = 0
     with open(out_dir / f"{name}.log", "w") as log_handle:
-        process = subprocess.Popen(command, stdout=log_handle, stderr=subprocess.STDOUT)
-        try:
-            process.wait(timeout=args.wall)
-        except subprocess.TimeoutExpired:
-            killed = True
-            subprocess.run(["docker", "kill", container], capture_output=True)
-            process.wait()
-    result = {"returncode": process.returncode, "wall": time.time() - started, "killed": killed}
+        with START_GATE:
+            # Host memory is shared by several workers: start only with enough headroom,
+            # and hold the gate while the new run ramps up so the next check sees it.
+            wait_for_memory(args.min_free_gb)
+            started = time.time()
+            process = subprocess.Popen(command, stdout=log_handle, stderr=subprocess.STDOUT)
+            ramp_until = time.time() + args.ramp
+            while time.time() < ramp_until and process.poll() is None:
+                time.sleep(1)
+        while process.poll() is None:
+            peak = max(peak, container_memory_peak(cidfile))
+            if time.time() - started > args.wall:
+                killed = True
+                subprocess.run(["docker", "kill", container], capture_output=True)
+                process.wait()
+                break
+            time.sleep(5)
+    if cidfile.exists():
+        cidfile.unlink()
+    result = {
+        "returncode": process.returncode,
+        "wall": time.time() - started,
+        "killed": killed,
+        "memory_peak_mb": round(peak / 2**20),
+        # 137 without our own kill = SIGKILL from the kernel: the memory cap was hit.
+        "oom": process.returncode == 137 and not killed,
+    }
     stream = out_dir / f"{name}.report.jsonl"
     if report.exists() and not args.per_file:
         result["report"] = json.loads(report.read_text())
@@ -268,16 +330,19 @@ def main() -> int:
     parser.add_argument("--corpus", type=Path, required=True, help="holds commits/*.patch")
     parser.add_argument("--tests", type=Path, default=REPO / "sample" / "tests.json")
     parser.add_argument("--sqlglot", type=Path, default=DATA / "sqlglot")
-    parser.add_argument("--jobs", type=int, default=3)
+    parser.add_argument("--jobs", type=int, default=2, help="parallel suite runs (host memory: keep <= 2)")
     parser.add_argument("--cpus", type=float, default=1.0, help="docker --cpus per run (without --cpuset)")
     parser.add_argument(
         "--cpuset",
-        default="9,10,11",
+        default="10,11",
         help="comma list of host CPUs, one pinned per job ('' = use --cpus quota). Pinning matters: "
         "TestOptimizer/TestExecutor spawn os.process_cpu_count() workers, and under a CPU quota on a "
         "many-core host they thrash (test_canonicalize 18 s instead of 1 s)",
     )
-    parser.add_argument("--memory", default="3g")
+    parser.add_argument("--memory", default="2500m", help="hard cap per run (--memory and --memory-swap)")
+    parser.add_argument("--min-free-gb", type=float, default=3.0, help="start a run only above this MemAvailable")
+    parser.add_argument("--ramp", type=int, default=45, help="seconds a new run holds the start gate")
+    parser.add_argument("--reuse-reports", action="store_true", help="use reports left by a stopped labeler")
     parser.add_argument("--timeout", type=int, default=300, help="pytest-timeout per test")
     parser.add_argument("--wall", type=int, default=1800, help="hard wall limit per suite run")
     parser.add_argument("--xdist", type=int, default=0, help="pytest -n N (0 = serial)")

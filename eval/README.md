@@ -42,7 +42,7 @@ A corpus directory holds `commits/<id>.patch` and optionally `kinds.json`
 (`{id: kind}`).
 
 ```sh
-eval/labeler/label.py --corpus DIR [--jobs 3] [--cpuset 9,10,11] [--timeout 300] [--kinds perf] [--skip-kinds perf]
+eval/labeler/label.py --corpus DIR [--jobs 2] [--cpuset 10,11] [--memory 2500m] [--min-free-gb 3] [--timeout 300] [--kinds perf] [--skip-kinds perf]
 ```
 
 It writes `DIR/labels/<id>.json` (failing numbers with reasons, vanished tests,
@@ -50,7 +50,10 @@ per-test real seconds, collection errors, wall time) and `DIR/answers.json` in
 the kit's format. It resumes where it stopped; `--force` relabels. Each job runs
 one serial full suite pinned to one host CPU (`--cpuset-cpus`): under a CPU
 *quota* the optimizer/executor tests spawn one process per host CPU and thrash.
-About 160 s per patch per core on a 12-core host.
+Each run is hard-capped at `--memory` (swap disabled) and starts only when the
+host has `--min-free-gb` available; the label records the run's peak memory,
+and a run the kernel OOM-kills is marked `oom` and left out of answers.json.
+About 140-230 s per patch per core on a 12-core host.
 
 ## Generating a stress corpus
 
