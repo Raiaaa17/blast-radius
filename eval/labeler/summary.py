@@ -43,7 +43,7 @@ def main() -> int:
         print(
             f"{kind:<24}{len(details):>4}{breaking:>6}"
             f"{(statistics.median(counts) if counts else 0):>6.0f}{(max(counts) if counts else 0):>6}"
-            f"{vanished:>7}{len(details) - len(applied):>7}{max((d.get('wall', 0) for d in applied), default=0):>6.0f}  "
+            f"{vanished:>7}{len(details) - len(applied):>7}{max((d.get('wall') or 0 for d in applied), default=0):>6.0f}  "
             + ", ".join(f"{r}={n}" for r, n in reasons.most_common(4))
         )
     print(f"total {totals['n']} labeled, {totals['breaking']} break at least one test")

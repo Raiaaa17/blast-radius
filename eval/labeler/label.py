@@ -343,6 +343,8 @@ def main() -> int:
     parser.add_argument("--min-free-gb", type=float, default=3.0, help="start a run only above this MemAvailable")
     parser.add_argument("--ramp", type=int, default=45, help="seconds a new run holds the start gate")
     parser.add_argument("--reuse-reports", action="store_true", help="use reports left by a stopped labeler")
+    parser.add_argument("--priority", nargs="*", default=[], help="label these kinds/prefixes first")
+    parser.add_argument("--stop-file", help="when this file exists, start no new run (drain and exit)")
     parser.add_argument("--timeout", type=int, default=300, help="pytest-timeout per test")
     parser.add_argument("--wall", type=int, default=1800, help="hard wall limit per suite run")
     parser.add_argument("--xdist", type=int, default=0, help="pytest -n N (0 = serial)")
@@ -379,7 +381,8 @@ def main() -> int:
         kind = kinds.get(patch.stem, "unknown")
         rank[kind] = rank.get(kind, -1) + 1
         order.append((rank[kind], kind, patch.stem, patch))
-    todo = [item[-1] for item in sorted(order)]
+    # --priority kinds first (still round-robin among themselves), then the rest.
+    todo = [item[-1] for item in sorted(order, key=lambda i: (not kind_matches(i[1], args.priority), i[:3]))]
     log(f"{len(patches)} patches, {len(todo)} to label, {args.jobs} jobs")
 
     answers_lock = threading.Lock()
@@ -389,6 +392,8 @@ def main() -> int:
         slots.put(cpus[index % len(cpus)] if cpus else None)
 
     def work(patch: Path) -> str:
+        if args.stop_file and Path(args.stop_file).exists():
+            return patch.stem  # drain: finish in-flight runs, start nothing new
         cpu = slots.get()
         try:
             detail = label_one(args, tests, patch, kinds.get(patch.stem, "unknown"), cpu)

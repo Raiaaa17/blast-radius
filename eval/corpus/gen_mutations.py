@@ -1441,6 +1441,268 @@ def op_fixture_inline_comment(rng, tree, path=None):
     return f"{path}:{i + 1} add inline `--` comment", [path]
 
 
+# shared-state pollution and dispatch additions --------------------------------
+# Shapes from br-research report section C: a narrowly reached function that mutates a
+# class- or module-level container (victims are later tests in suite order), and newly
+# added dispatch entries (`<key>_sql` methods, TRANSFORMS and parser FUNCTIONS entries)
+# that attribute-level maps of the pristine code cannot see.
+
+INTROSPECTION: dict = {}
+TEST_WORDS: set = set()
+
+
+def _introspection(tree: Tree) -> dict:
+    if not INTROSPECTION:
+        INTROSPECTION.update(json.loads(Path(tree.introspect_path).read_text()))
+        words = set()
+        for test in tree.tests:
+            words.update(re.findall(r"\b([A-Z][A-Z0-9_]{2,})\(", tree.read(test)))
+        TEST_WORDS.update(words)
+    return INTROSPECTION
+
+
+def _funcs_by_class(tree):
+    return {f["class"]: f for f in _introspection(tree)["funcs"]}
+
+
+def _class_node(source: Source, name: str):
+    return next((c for c in source.nodes(ast.ClassDef) if c.name == name), None)
+
+
+def _exp_imported(source: Source) -> bool:
+    return re.search(r"^from sqlglot import .*\bexp\b|^from sqlglot import exp$|^import sqlglot.expressions as exp", source.text, re.M) is not None
+
+
+def _insert_in_method(rng, tree, path, class_name, line, label, prefer=None):
+    source = Source(tree.read(path))
+    cls = _class_node(source, class_name)
+    if cls is None:
+        return None
+    methods = [f for f in cls.body if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and f.name != "__init__"]
+    if prefer:
+        preferred = [f for f in methods if f.name.startswith(prefer) or f.name.endswith(prefer)]
+        methods = preferred or methods
+    rng.shuffle(methods)
+    for function in methods:
+        first = source.body_start(function)
+        if first is None or first.lineno == function.lineno:
+            continue
+        if not function.args.args or function.args.args[0].arg != "self":
+            continue
+        text = source.insert_lines(first.lineno, source.indent_of(first) + line + "\n")
+        result = _edit_file(tree, path, text, f"{path}:{first.lineno} {label} in {class_name}.{function.name}()")
+        if result:
+            return result
+    return None
+
+
+def op_research_c1(rng, tree, path=None):
+    """br-research C1 verbatim: BigQuery _parse_make_interval pops FUNCTIONS["DATE_DIFF"]."""
+    path = "sqlglot/parsers/bigquery.py"
+    text = tree.read(path)
+    anchor = "    def _parse_make_interval(self) -> exp.MakeInterval:\n        expr = exp.MakeInterval()\n"
+    if anchor not in text:
+        return None
+    text = text.replace(anchor, anchor + '        self.FUNCTIONS.pop("DATE_DIFF", None)\n', 1)
+    return _edit_file(tree, path, text, f"{path} research C1: _parse_make_interval pops FUNCTIONS['DATE_DIFF']")
+
+
+def op_research_c2(rng, tree, path=None):
+    """br-research C2 verbatim: DuckDBGenerator gains abs_sql."""
+    path = "sqlglot/generators/duckdb.py"
+    text = tree.read(path)
+    anchor = '    _TRYCAST_DATE_MON_FMT = "%d-%b-%Y"\n\n'
+    if anchor not in text:
+        return None
+    method = (
+        "    def abs_sql(self, expression: exp.Abs) -> str:\n"
+        '        return self.func("ABS", expression.this, expression.this)\n\n'
+    )
+    text = text.replace(anchor, anchor + method, 1)
+    return _edit_file(tree, path, text, f"{path} research C2: DuckDBGenerator.abs_sql added")
+
+
+def _dialect_classes(tree, kind):
+    entries = _introspection(tree)["generators" if kind == "generator" else "parsers"]
+    return [e for e in entries if not e["file"].endswith(("/__init__.py", "/base.py")) and e["file"] in tree.src]
+
+
+def op_pollute_class_container(rng, tree, path=None):
+    """A dialect method mutates a class-level table it shares (self.FUNCTIONS, TRANSFORMS, _dispatch)."""
+    kind = rng.choice(["parser", "generator"])
+    entry = rng.choice(_dialect_classes(tree, kind))
+    source = Source(tree.read(entry["file"]))
+    if kind == "parser":
+        container = rng.choice(["FUNCTIONS", "FUNCTIONS", "FUNCTION_PARSERS"])
+        keys = entry["functions"] if container == "FUNCTIONS" else entry["function_parsers"]
+        seen = [k for k in keys if k in TEST_WORDS] or keys
+        if not seen:
+            return None
+        key = rng.choice(seen)
+        line = f"self.{container}.pop({key!r}, None)"
+        return _insert_in_method(rng, tree, entry["file"], entry["class"], line, f"`{line}`", prefer="_parse_")
+    if not _exp_imported(source) or not entry["transforms"]:
+        return None
+    key = rng.choice(entry["transforms"])
+    container = rng.choice(["TRANSFORMS", "_dispatch"])
+    line = f"self.{container}.pop(exp.{key}, None)"
+    return _insert_in_method(rng, tree, entry["file"], entry["class"], line, f"`{line}`", prefer="_sql")
+
+
+def op_pollute_module_container(rng, tree, path=None):
+    """A function mutates a module-level dict/set/list of its own module."""
+    path = path or pick_src(rng, tree)
+    source = Source(tree.read(path))
+    containers = []
+    for stmt in source.tree.body:
+        if isinstance(stmt, (ast.Assign, ast.AnnAssign)) and isinstance(stmt.value, (ast.Dict, ast.Set, ast.List)):
+            targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+            names = [t.id for t in targets if isinstance(t, ast.Name)]
+            if not names:
+                continue
+            value = stmt.value
+            items = [k for k in value.keys if k is not None] if isinstance(value, ast.Dict) else list(value.elts)
+            items = [i for i in items if isinstance(i, (ast.Constant, ast.Attribute)) and i.lineno == i.end_lineno]
+            if items:
+                containers.append((names[0], value, items))
+    functions = [f for f in source.functions() if f.name != "__init__" and source.body_start(f) is not None]
+    if not containers or not functions:
+        return None
+    name, value, items = rng.choice(containers)
+    key = source.node_text(rng.choice(items))
+    if isinstance(value, ast.Dict):
+        line = f"{name}.pop({key}, None)"
+    elif isinstance(value, ast.Set):
+        line = f"{name}.discard({key})"
+    else:
+        line = f"{name}.remove({key}) if {key} in {name} else None"
+    rng.shuffle(functions)
+    for function in functions:
+        first = source.body_start(function)
+        if first.lineno == function.lineno:
+            continue
+        text = source.insert_lines(first.lineno, source.indent_of(first) + line + "\n")
+        result = _edit_file(tree, path, text, f"{path}:{first.lineno} `{line}` in {function.name}()")
+        if result:
+            return result
+    return None
+
+
+def _pick_func(rng, tree, exclude_classes, need_key_free=None):
+    funcs = [f for f in _introspection(tree)["funcs"] if not f["key"].startswith("_") and f["class"] not in exclude_classes]
+    if need_key_free is not None:
+        funcs = [f for f in funcs if f"{f['key']}_sql" not in need_key_free]
+    exercised = [f for f in funcs if any(n in TEST_WORDS for n in f["sql_names"])]
+    pool = exercised if exercised and rng.random() < 0.8 else funcs
+    return rng.choice(pool) if pool else None
+
+
+def _sql_name(func):
+    return func["sql_names"][0] if func["sql_names"] else func["key"].upper()
+
+
+def op_dispatch_add_sql_method(rng, tree, path=None):
+    """A dialect generator gains `<key>_sql` for an expression it used to generate by fallback."""
+    entry = rng.choice(_dialect_classes(tree, "generator"))
+    source = Source(tree.read(entry["file"]))
+    if not _exp_imported(source):
+        return None
+    func = _pick_func(rng, tree, set(entry["transforms"]), set(entry["sql_methods"]))
+    cls = _class_node(source, entry["class"])
+    if func is None or cls is None:
+        return None
+    name = _sql_name(func)
+    body = rng.choice(
+        [
+            f'return self.func("{name}", expression.this)',
+            f'return self.func("{name}", expression.this, expression.this)',
+            f'return self.func("{name}", *(v for v in expression.args.values() if isinstance(v, exp.Expr)))',
+            "return self.function_fallback_sql(expression)",
+        ]
+    )
+    methods = [f for f in cls.body if isinstance(f, ast.FunctionDef)]
+    indent = source.indent_of(cls.body[0])
+    method = f"{indent}def {func['key']}_sql(self, expression: exp.{func['class']}) -> str:\n{indent}    {body}\n\n"
+    at = (methods[0].decorator_list[0].lineno if methods and methods[0].decorator_list else methods[0].lineno) if methods else cls.end_lineno + 1
+    if not methods:
+        method = "\n" + method.rstrip("\n") + "\n"
+    text = source.insert_lines(at, method)
+    return _edit_file(tree, entry["file"], text, f"{entry['file']} add {entry['class']}.{func['key']}_sql: `{body}`")
+
+
+def _dict_literal(source: Source, cls, name: str):
+    for stmt in cls.body:
+        if isinstance(stmt, (ast.Assign, ast.AnnAssign)) and isinstance(stmt.value, ast.Dict):
+            targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+            if any(isinstance(t, ast.Name) and t.id == name for t in targets):
+                return stmt.value
+    return None
+
+
+def _insert_dict_entry(source: Source, value: ast.Dict, entry_text: str) -> str | None:
+    """Insert `entry_text,` as a new line after the dict's first element (often the ** spread)."""
+    first = value.values[0] if value.keys and value.keys[0] is None else (value.keys[0] if value.keys else None)
+    if first is None or value.lineno == value.end_lineno:
+        return None
+    end_line = (value.values[0] if value.keys[0] is None else value.values[0]).end_lineno
+    line = source.lines[end_line - 1]
+    if not line.rstrip().endswith(","):
+        return None
+    indent = source.indent_of(first)
+    return source.insert_lines(end_line + 1, f"{indent}{entry_text},\n")
+
+
+def op_dispatch_add_transform(rng, tree, path=None):
+    """A dialect generator's TRANSFORMS gains an entry for an expression it did not map."""
+    entries = [e for e in _dialect_classes(tree, "generator") if e["own_transforms"]]
+    entry = rng.choice(entries)
+    source = Source(tree.read(entry["file"]))
+    cls = _class_node(source, entry["class"])
+    value = _dict_literal(source, cls, "TRANSFORMS") if cls else None
+    if value is None or not _exp_imported(source):
+        return None
+    override = rng.random() < 0.3  # TRANSFORMS take precedence over an existing <key>_sql method
+    func = _pick_func(rng, tree, set(entry["transforms"]), None if override else set(entry["sql_methods"]))
+    if func is None:
+        return None
+    other = _pick_func(rng, tree, set())
+    target = _sql_name(other) if other and rng.random() < 0.5 else _sql_name(func)
+    if re.search(r"\brename_func\b", source.text.split("class ")[0]):
+        mapped = f'rename_func("{target}")'
+    else:
+        mapped = f'lambda self, e: self.func("{target}", e.this)'
+    text = _insert_dict_entry(source, value, f"exp.{func['class']}: {mapped}")
+    if text is None:
+        return None
+    return _edit_file(tree, entry["file"], text, f"{entry['file']} {entry['class']}.TRANSFORMS += exp.{func['class']}: {mapped}")
+
+
+def op_dispatch_add_parser_function(rng, tree, path=None):
+    """A dialect parser's FUNCTIONS gains a name that used to parse as an anonymous function."""
+    entries = [e for e in _dialect_classes(tree, "parser") if e["own_functions"]]
+    entry = rng.choice(entries)
+    source = Source(tree.read(entry["file"]))
+    cls = _class_node(source, entry["class"])
+    value = _dict_literal(source, cls, "FUNCTIONS") if cls else None
+    if value is None or not _exp_imported(source):
+        return None
+    known = set(entry["functions"]) | set(entry["function_parsers"]) | set(entry["no_paren"])
+    dialect = Path(entry["file"]).stem
+    test_file = f"tests/dialects/test_{dialect}.py"
+    local = set(re.findall(r"\b([A-Z][A-Z0-9_]{2,})\(", tree.read(test_file))) if test_file in tree.tests else set()
+    candidates = sorted((local or TEST_WORDS) - known)
+    if not candidates:
+        return None
+    name = rng.choice(candidates)
+    func = _pick_func(rng, tree, set())
+    if func is None:
+        return None
+    text = _insert_dict_entry(source, value, f'"{name}": exp.{func["class"]}.from_arg_list')
+    if text is None:
+        return None
+    return _edit_file(tree, entry["file"], text, f'{entry["file"]} {entry["class"]}.FUNCTIONS += "{name}": exp.{func["class"]}.from_arg_list')
+
+
 # --------------------------------------------------------------------------- kinds
 
 KINDS = {
@@ -1521,6 +1783,14 @@ KINDS = {
     "code:decorator-remove": op_decorator_remove,
     "noop:annotation": op_noop_annotation,
     "fixture:inline-comment": op_fixture_inline_comment,
+    # shared-state pollution and dispatch additions (br-research C1/C2 shapes)
+    "pollute:research-c1": op_research_c1,
+    "dispatch:research-c2": op_research_c2,
+    "pollute:class-container": op_pollute_class_container,
+    "pollute:module-container": op_pollute_module_container,
+    "dispatch:add-sql-method": op_dispatch_add_sql_method,
+    "dispatch:add-transform": op_dispatch_add_transform,
+    "dispatch:add-parser-function": op_dispatch_add_parser_function,
 }
 
 # Multi-file mixes, like the sample's "multi" (code + comment + fixture) and beyond.
@@ -1571,9 +1841,16 @@ def main() -> int:
     parser.add_argument("--multi-per-recipe", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--kinds", nargs="*", help="only these kinds")
+    parser.add_argument(
+        "--introspect",
+        type=Path,
+        default=Path("/home/rayana/firstmate/data/br-eval/work/introspect.json"),
+        help="output of eval/corpus/introspect.py run in the reference image on the pristine tree",
+    )
     args = parser.parse_args()
 
     tree = Tree(args.sqlglot)
+    tree.introspect_path = args.introspect
     rng = random.Random(args.seed)
     (args.out / "commits").mkdir(parents=True, exist_ok=True)
     kinds_path, meta_path = args.out / "kinds.json", args.out / "meta.json"
