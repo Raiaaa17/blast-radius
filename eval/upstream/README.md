@@ -56,7 +56,7 @@ The coarse `kind` comes from the patch alone, never from a test outcome: `code`;
 git clone --shallow-since=2026-06-01 --no-checkout https://github.com/tobymao/sqlglot.git /path/sqlglot
 eval/upstream/mine.py --repo /path/sqlglot --out /path/pool --rev-limit 1300 --tests-json sample/tests.json
 eval/upstream/select_corpus.py --pool /path/pool --out /path/corpus --limit 500
-BR_JOBS=2 BR_CPUSET=6,7 eval/upstream/label.sh /path/corpus      # ~3 min of one core per patch
+BR_JOBS=2 BR_CPUSET=6,7 eval/upstream/label.sh /path/corpus      # ~3 min of one core per patch, memory-gated
 eval/score_image.sh <image> /path/corpus                          # br-eval's scorer
 ```
 
