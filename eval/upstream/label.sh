@@ -72,9 +72,9 @@ while [ "$i" -lt "${#todo[@]}" ]; do
     if [ ! -e "$corpus/labels/$id.json" ] && ! pgrep -f -- "--corpus $corpus --tests .* --only $id\$" >/dev/null; then
       python3 "$labeler" --corpus "$corpus" --tests "$corpus/tests.json" --sqlglot "$sqlglot" \
         --jobs 1 --cpuset "$c" --memory "$memory" --only "$id" >> "$corpus/logs/label.log" 2>&1 &
+      sleep 45  # let the new run's memory show up before the next check
     fi
     i=$((i + 1))
-    sleep 45  # let the new run's memory show up before the next check
   else
     sleep 20
   fi
