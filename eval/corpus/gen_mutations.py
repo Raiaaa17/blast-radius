@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import gzip
+import hashlib
 import json
 import random
 import re
@@ -72,8 +74,12 @@ class Tree:
 
     def diff(self) -> str:
         self.git("add", "-A")
+        # --binary implies --full-index, so use it only when a binary file changed: text patches
+        # keep the sample's abbreviated `index` lines.
+        binary = any(line.startswith("-\t-\t") for line in self.git("diff", "--cached", "--numstat").splitlines())
         text = self.git(
-            "-c", "core.abbrev=7", "diff", "--cached", "-M", "--no-color", "--no-ext-diff",
+            "-c", "core.abbrev=7", "-c", "core.quotePath=true", "diff", "--cached", "-M",
+            *(["--binary"] if binary else []), "--no-color", "--no-ext-diff",
             "--src-prefix=a/", "--dst-prefix=b/",
         )  # fmt: skip
         self.git("reset", "-q")
@@ -1703,6 +1709,342 @@ def op_dispatch_add_parser_function(rng, tree, path=None):
     return _edit_file(tree, entry["file"], text, f'{entry["file"]} {entry["class"]}.FUNCTIONS += "{name}": exp.{func["class"]}.from_arg_list')
 
 
+# --------------------------------------------------------------------------- round 3
+# Kinds the first rounds lacked: patch-format edges (CRLF, no final newline, byte order mark,
+# binary data, quoted paths, a submodule bump, an empty patch), a file outside the package that
+# the tests execute (sqlglotc/setup.py), a new dialect and its registries, renamed methods,
+# Expression arg_types, fixture whitespace, a tests/conftest.py, and sweeps over many files.
+
+
+def _write_bytes(tree: Tree, path: str, data: bytes) -> None:
+    target = tree.root / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+
+
+def _small(tree: Tree, paths: list[str], low: int, high: int) -> list[str]:
+    return [p for p in paths if low < (tree.root / p).stat().st_size < high]
+
+
+def op_fixture_blank_line(rng, tree, path=None):
+    """A blank line inside a fixture: the optimizer loader splits its cases on blank lines."""
+    path = path or pick_fixture(rng, tree)
+    text = tree.read(path)
+    lines = text.splitlines(keepends=True)
+    candidates = [i for i in _fixture_lines(text) if i > 0]
+    if not candidates:
+        return None
+    i = rng.choice(candidates)
+    tree.write(path, "".join(lines[:i] + ["\n"] + lines[i:]))
+    return f"{path}:{i + 1} insert a blank line", [path]
+
+
+def op_fixture_trailing_space(rng, tree, path=None):
+    path = path or pick_fixture(rng, tree)
+    text = tree.read(path)
+    lines = text.splitlines(keepends=True)
+    candidates = [i for i in _fixture_lines(text) if lines[i].endswith("\n")]
+    if not candidates:
+        return None
+    i = rng.choice(candidates)
+    lines[i] = lines[i][:-1] + rng.choice([" ", "  ", "\t"]) + "\n"
+    tree.write(path, "".join(lines))
+    return f"{path}:{i + 1} trailing whitespace", [path]
+
+
+def op_format_crlf(rng, tree, path=None):
+    """A whole file converted to CRLF line endings (every line of it changes in the diff)."""
+    if path is None:
+        pool = _small(tree, tree.fixtures, 200, 30000) if rng.random() < 0.5 else _small(tree, tree.src, 500, 15000)
+        path = rng.choice(pool)
+    data = (tree.root / path).read_bytes()
+    if b"\r" in data:
+        return None
+    _write_bytes(tree, path, data.replace(b"\n", b"\r\n"))
+    return f"{path} converted to CRLF line endings", [path]
+
+
+def op_format_no_eol(rng, tree, path=None):
+    path = path or (rng.choice(tree.fixtures) if rng.random() < 0.5 else pick_src(rng, tree))
+    text = tree.read(path)
+    if not text.endswith("\n"):
+        return None
+    tree.write(path, text.rstrip("\n"))
+    return f"{path} drop the final newline", [path]
+
+
+def op_format_bom(rng, tree, path=None):
+    path = path or (pick_fixture(rng, tree) if rng.random() < 0.5 else pick_src(rng, tree))
+    data = (tree.root / path).read_bytes()
+    if data.startswith(b"\xef\xbb\xbf"):
+        return None
+    _write_bytes(tree, path, b"\xef\xbb\xbf" + data)
+    return f"{path} gains a UTF-8 byte order mark", [path]
+
+
+def op_file_binary(rng, tree, path=None):
+    """A gzipped TPC-H/TPC-DS table changes (GIT binary patch), or a binary image is added."""
+    tables = [p for p in tree.files("tests/fixtures") if p.endswith(".csv.gz")]
+    mode = rng.choice(["value", "row", "truncate", "image"])
+    if mode == "image":
+        path = f"posts/{_word(rng)}.png"
+        _write_bytes(tree, path, b"\x89PNG\r\n\x1a\n" + bytes(rng.randrange(256) for _ in range(300)))
+        return f"add binary image {path}", [path]
+    path = path or rng.choice(tables)
+    raw = gzip.decompress((tree.root / path).read_bytes())
+    lines = raw.decode("utf-8").splitlines(keepends=True)
+    if len(lines) < 3:
+        return None
+    if mode == "truncate":
+        data = (tree.root / path).read_bytes()
+        _write_bytes(tree, path, data[: len(data) // 2])
+        return f"{path} truncated (corrupt gzip)", [path]
+    i = rng.randrange(1, len(lines))
+    if mode == "row":
+        del lines[i]
+        desc = f"{path} delete data row {i}"
+    else:
+        cells = lines[i].rstrip("\n").split("|")
+        numeric = [j for j, c in enumerate(cells) if re.fullmatch(r"-?\d+(\.\d+)?", c)]
+        if not numeric:
+            return None
+        j = rng.choice(numeric)
+        cells[j] = str(int(float(cells[j])) + 1) if "." not in cells[j] else f"{float(cells[j]) + 1:.2f}"
+        lines[i] = "|".join(cells) + "\n"
+        desc = f"{path} row {i} column {j} value changed"
+    _write_bytes(tree, path, gzip.compress("".join(lines).encode("utf-8"), mtime=0))
+    return desc, [path]
+
+
+def op_file_quoted_path(rng, tree, path=None):
+    """A path that git quotes or that holds spaces (non-ASCII or space in the name)."""
+    if rng.random() < 0.5:
+        path = rng.choice(["posts/notes on café.md", "posts/größe notes.md", "posts/release notes/read me.md"])
+        tree.write(path, "# Notes\n\nNothing to see here.\n")
+        return f"add {path} (quoted path in the diff)", [path]
+    old = path or pick_fixture(rng, tree)
+    new = old[:-4] + rng.choice([" copy.sql", "_é.sql"])
+    tree.git("mv", old, new)
+    return f"rename {old} -> {new} (quoted path in the diff)", [old, new]
+
+
+def op_file_submodule(rng, tree, path=None):
+    """Bump the sqlglot-integration-tests submodule (a gitlink, mode 160000)."""
+    entry = tree.git("ls-files", "-s", "sqlglot-integration-tests").split()
+    if not entry or entry[0] != "160000":
+        return None
+    new = hashlib.sha1(_word(rng, 12).encode()).hexdigest()
+    tree.git("update-index", "--cacheinfo", f"160000,{new},sqlglot-integration-tests")
+    return f"bump submodule sqlglot-integration-tests {entry[1][:7]} -> {new[:7]}", ["sqlglot-integration-tests"]
+
+
+SETUP = "sqlglotc/setup.py"
+
+
+def op_outside_executed(rng, tree, path=None):
+    """Edit sqlglotc/setup.py, outside the package, which tests/test_sqlglotc.py runs with runpy."""
+    if SETUP not in tree.files("sqlglotc"):
+        return None
+    op = rng.choice([op_compare, op_constant, op_stmt_delete, op_return_early, op_cond_negate, op_comment, op_syntax_error, op_noop_format])
+    result = op(rng, tree, SETUP)
+    if not result:
+        return None
+    return f"[{op.__name__}] {result[0]}", result[1]
+
+
+NEW_DIALECT = '''from __future__ import annotations
+
+from sqlglot.dialects.{base_mod} import {base}
+{imports}
+
+class {name}({base}):
+    """{name}: a {base} variant."""
+{body}'''
+
+
+def op_dialect_new(rng, tree, path=None):
+    """A new dialect: its module(s) plus the registries (DIALECTS list, Dialects enum)."""
+    base, base_mod = rng.choice([("Postgres", "postgres"), ("MySQL", "mysql"), ("Trino", "trino"), ("DuckDB", "duckdb"), ("Hive", "hive")])
+    word = _word(rng, 5)
+    name, module = word.capitalize(), word
+    variant = rng.choice(["minimal", "layered", "unregistered", "missing-module", "enum-only"])
+    imports, body = "", "    pass\n"
+    files = []
+    if variant == "layered":
+        # The repository's layout: dialects/<x>.py + parsers/<x>.py + generators/<x>.py.
+        if not all((tree.root / f"sqlglot/{area}/{base_mod}.py").exists() for area in ("parsers", "generators")):
+            return None
+        base_parser = f"{base}Parser"
+        tree.write(
+            f"sqlglot/parsers/{module}.py",
+            f"from __future__ import annotations\n\nfrom sqlglot.parsers.{base_mod} import {base_parser}\n\n\n"
+            f"class {name}Parser({base_parser}):\n    FUNCTIONS = {{**{base_parser}.FUNCTIONS}}\n",
+        )
+        tree.write(
+            f"sqlglot/generators/{module}.py",
+            f"from __future__ import annotations\n\nfrom sqlglot import exp\nfrom sqlglot.generators.{base_mod} import {base}Generator\n\n\n"
+            f"class {name}Generator({base}Generator):\n    TRANSFORMS = {{\n        **{base}Generator.TRANSFORMS,\n"
+            f"        exp.CurrentDate: lambda self, e: \"CURRENT_DATE()\",\n    }}\n",
+        )
+        imports = f"from sqlglot.generators.{module} import {name}Generator\nfrom sqlglot.parsers.{module} import {name}Parser\n"
+        body = f"    Parser = {name}Parser\n    Generator = {name}Generator\n"
+        files += [f"sqlglot/parsers/{module}.py", f"sqlglot/generators/{module}.py"]
+    if variant != "missing-module" and variant != "enum-only":
+        tree.write(f"sqlglot/dialects/{module}.py", NEW_DIALECT.format(base_mod=base_mod, base=base, imports=imports, name=name, body=body))
+        files.append(f"sqlglot/dialects/{module}.py")
+    if variant != "unregistered":
+        if variant != "enum-only":
+            init = "sqlglot/dialects/__init__.py"
+            text = tree.read(init)
+            entries = re.findall(r'^    "(\w+)",$', text.split("DIALECTS = [", 1)[1].split("]", 1)[0], re.M)
+            after = max([e for e in entries if e.lower() < name.lower()] or [entries[0]], key=str.lower)
+            text = text.replace(f'    "{after}",\n', f'    "{after}",\n    "{name}",\n', 1)
+            tree.write(init, text)
+            files.append(init)
+        dialect_py = "sqlglot/dialects/dialect.py"
+        text = tree.read(dialect_py)
+        marker = '    TSQL = "tsql"\n'
+        if marker not in text:
+            return None
+        tree.write(dialect_py, text.replace(marker, marker + f'    {name.upper()} = "{module}"\n', 1))
+        files.append(dialect_py)
+    return f"new dialect {name}({base}) [{variant}]", files
+
+
+def op_rename_method(rng, tree, path=None):
+    """Rename a method and every reference to its name in the same file (an IDE-style rename)."""
+    path = path or pick_src(rng, tree, rng.choice(["sqlglot/generators/", "sqlglot/parsers/", "sqlglot/optimizer/", "sqlglot/dialects/", "sqlglot/expressions/"]))
+    source = Source(tree.read(path))
+    methods = [
+        f
+        for c in source.nodes(ast.ClassDef)
+        for f in c.body
+        if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and not f.name.startswith("__")
+    ]
+    if not methods:
+        return None
+    function = rng.choice(methods)
+    old = function.name
+    new = rng.choice([f"{old}_impl", f"{old}2", f"_{old}" if not old.startswith("_") else old.lstrip("_")])
+    if re.search(rf"\b{re.escape(new)}\b", source.text):
+        return None
+    text = re.sub(rf"\b{re.escape(old)}\b", new, source.text)
+    count = len(re.findall(rf"\b{re.escape(old)}\b", source.text))
+    return _edit_file(tree, path, text, f"{path}:{function.lineno} rename method {old} -> {new} ({count} references in the file)")
+
+
+def op_expr_arg_types(rng, tree, path=None):
+    """An Expression's arg_types: a flag flips, an optional arg is added, or an arg is removed."""
+    pool = [p for p in tree.src if p.startswith("sqlglot/expressions/") and "arg_types = {" in tree.read(p)]
+    path = path or rng.choice(pool)
+    source = Source(tree.read(path))
+    assigns = [
+        n
+        for c in source.nodes(ast.ClassDef)
+        for n in c.body
+        if isinstance(n, ast.Assign)
+        and len(n.targets) == 1
+        and isinstance(n.targets[0], ast.Name)
+        and n.targets[0].id == "arg_types"
+        and isinstance(n.value, ast.Dict)
+    ]
+    if not assigns:
+        return None
+    assign = rng.choice(assigns)
+    cls = assign._parent  # type: ignore[attr-defined]
+    entries = [
+        (k, v)
+        for k, v in zip(assign.value.keys, assign.value.values)
+        if isinstance(k, ast.Constant) and isinstance(k.value, str) and isinstance(v, ast.Constant) and isinstance(v.value, bool)
+    ]
+    mode = rng.choice(["flip", "add", "remove"])
+    if mode == "add" or not entries:
+        word = _word(rng, 5)
+        last = assign.value.values[-1] if assign.value.values else None
+        if last is None:
+            return None
+        start, end = source.span(last)
+        text = source.replace([(end, end, f', "{word}": False')])
+        desc = f'{path}:{assign.lineno} {cls.name}.arg_types += "{word}": False'
+    elif mode == "flip":
+        key, value = rng.choice(entries)
+        start, end = source.span(value)
+        text = source.replace([(start, end, str(not value.value))])
+        desc = f'{path}:{value.lineno} {cls.name}.arg_types["{key.value}"] {value.value} -> {not value.value}'
+    else:
+        if len(entries) < 2:
+            return None
+        key, value = rng.choice([e for e in entries if e[0].value != "this"] or entries)
+        start, _ = source.span(key)
+        _, end = source.span(value)
+        tail = source.data[end:]
+        match = re.match(rb"\s*,[ \t]*", tail)
+        end += match.end() if match else 0
+        text = source.replace([(start, end, "")])
+        desc = f'{path}:{key.lineno} {cls.name}.arg_types drops "{key.value}"'
+    return _edit_file(tree, path, text, desc)
+
+
+CONFTESTS = [
+    ("benign autouse fixture", "import pytest\n\n\n@pytest.fixture(autouse=True)\ndef _noop():\n    yield\n"),
+    (
+        "autouse fixture that errors in {module}",
+        "import pytest\n\n\n@pytest.fixture(autouse=True)\ndef _guard(request):\n"
+        "    if request.module.__name__.endswith(\"{module}\"):\n        raise RuntimeError(\"not supported here\")\n    yield\n",
+    ),
+    ("collect_ignore {file}", 'collect_ignore = ["{file}"]\n'),
+    ("marker registration only", 'def pytest_configure(config):\n    config.addinivalue_line("markers", "slow: slow tests")\n'),
+]
+
+
+def op_test_conftest(rng, tree, path=None):
+    """A new tests/conftest.py: hooks and fixtures that reach tests no import connects."""
+    if "tests/conftest.py" in tree.tests:
+        return None
+    desc, body = rng.choice(CONFTESTS)
+    test = rng.choice(_test_sources(tree))
+    module = Path(test).stem
+    file = str(Path(test).relative_to("tests"))
+    tree.write("tests/conftest.py", body.format(module=module, file=file))
+    return f"add tests/conftest.py: {desc.format(module=module, file=file)}", ["tests/conftest.py"]
+
+
+def _sweep(rng, tree, count):
+    files = rng.sample([p for p in tree.src if not p.endswith("__init__.py")], count)
+    for path in files:
+        text = tree.read(path)
+        tree.write(path, text.rstrip("\n") + "\n\n\n# " + rng.choice(["reviewed for the 2026 cleanup", "see CONTRIBUTING.md", "end of module"]) + "\n")
+    return files
+
+
+def op_sweep_comment(rng, tree, path=None):
+    """A comment appended to 30-60 source files (a mechanical sweep, behavior-neutral)."""
+    files = _sweep(rng, tree, rng.randrange(30, 61))
+    return f"append a comment line to {len(files)} source files", files
+
+
+def op_sweep_mixed(rng, tree, path=None):
+    """The comment sweep plus one real code mutation hidden among the files."""
+    files = _sweep(rng, tree, rng.randrange(30, 61))
+    for _ in range(30):
+        op = rng.choice([op_compare, op_constant, op_return_early, op_cond_negate, op_bool])
+        target = pick_src(rng, tree)
+        if target in files:
+            continue
+        result = op(rng, tree, target)
+        if result:
+            return f"comment sweep over {len(files)} files + [{op.__name__}] {result[0]}", files + result[1]
+    return None
+
+
+def op_noop_large(rng, tree, path=None):
+    """A large documentation-only diff (~200 KB appended to CHANGELOG.md)."""
+    lines = [f"- {_word(rng, 8)}: {' '.join(_word(rng, rng.randrange(3, 9)) for _ in range(6))}\n" for _ in range(3500)]
+    tree.write("CHANGELOG.md", tree.read("CHANGELOG.md") + "\n## Unreleased\n\n" + "".join(lines))
+    return "append ~3500 lines to CHANGELOG.md", ["CHANGELOG.md"]
+
+
+
 # --------------------------------------------------------------------------- kinds
 
 KINDS = {
@@ -1791,6 +2133,24 @@ KINDS = {
     "dispatch:add-sql-method": op_dispatch_add_sql_method,
     "dispatch:add-transform": op_dispatch_add_transform,
     "dispatch:add-parser-function": op_dispatch_add_parser_function,
+    # round 3: patch-format edges, executed files outside the package, registries, refactors
+    "fixture:blank-line": op_fixture_blank_line,
+    "fixture:trailing-space": op_fixture_trailing_space,
+    "format:crlf": op_format_crlf,
+    "format:no-eol": op_format_no_eol,
+    "format:bom": op_format_bom,
+    "file:binary": op_file_binary,
+    "file:quoted-path": op_file_quoted_path,
+    "file:submodule": op_file_submodule,
+    "outside:executed": op_outside_executed,
+    "dialect:new": op_dialect_new,
+    "refactor:rename-method": op_rename_method,
+    "expr:arg-types": op_expr_arg_types,
+    "test:conftest": op_test_conftest,
+    "sweep:comment": op_sweep_comment,
+    "sweep:mixed": op_sweep_mixed,
+    "noop:large": op_noop_large,
+    "noop:empty": None,  # an empty patch file: nothing changes at all
 }
 
 # Multi-file mixes, like the sample's "multi" (code + comment + fixture) and beyond.
@@ -1809,6 +2169,8 @@ MULTI_RECIPES = [
 
 
 def generate(tree: Tree, rng: random.Random, kind: str) -> tuple[str, list[str], str] | None:
+    if kind == "noop:empty":
+        return "empty patch (no change at all)", [], ""
     if kind.startswith("multi:"):
         recipe = MULTI_RECIPES[int(kind.split(":")[1])]
         descs, files = [], []

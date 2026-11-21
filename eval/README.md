@@ -76,6 +76,23 @@ renamed, deleted, skipped tests, helper edits, test-file syntax errors),
 reordered functions, files outside the package), `perf:*` (busy loops,
 infinite loops, unbounded recursion) and `multi`.
 
+Round 3 adds what a patch parser or a coverage map most easily gets wrong:
+`format:*` (whole file to CRLF, final newline dropped, UTF-8 byte order mark),
+`file:binary` (`GIT binary patch` of a TPC-H/TPC-DS `.csv.gz` table: a value, a
+row, a truncated gzip; an added image), `file:quoted-path` (non-ASCII names git
+quotes, names with spaces), `file:submodule` (gitlink bump), `outside:executed`
+(`sqlglotc/setup.py`, which `tests/test_sqlglotc.py` runs with `runpy`),
+`dialect:new` (a new dialect with or without its registries: `DIALECTS`, the
+`Dialects` enum, parsers/generators modules; also a registry entry whose module
+is missing), `refactor:rename-method` (a method and its in-file references,
+which breaks name-based dispatch such as `<key>_sql`), `expr:arg-types`
+(required/optional flips, added and dropped args), `test:conftest` (a new
+`tests/conftest.py`: autouse fixtures, `collect_ignore`), `fixture:blank-line`,
+`fixture:trailing-space`, `sweep:comment` / `sweep:mixed` (30-60 files, with or
+without one real mutation among them), `noop:large` (~180 KB docs diff) and
+`noop:empty` (an empty patch file). `Tree.diff` adds `--binary` only when a
+binary file changed, so text patches keep the sample's abbreviated `index` lines.
+
 ## Scoring an image
 
 ```sh
