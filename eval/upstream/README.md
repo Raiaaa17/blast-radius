@@ -48,16 +48,22 @@ The coarse `kind` comes from the patch alone, never from a test outcome: `code`;
 - `label.sh` - labels a corpus in priority order with br-eval's reference labeler
   (`eval/labeler/label.py`: pristine pinned tree + patch, full suite in the reference
   image, the grader's failure semantics) and writes `answers.json` in the kit's format.
-- `sample/` - a small representative subset of the corpus, with its labels, for quick checks.
+- `export_labeled.py` - copies the labeled part of a labeling dir into a kit-shaped corpus
+  (`commits/` + `answers.json` + `manifest.json` + `tests.json` + `labels/`).
+- `report.py` - counts by kind / portion / area, how many break something, failures outside
+  the edited code's own test files, expensive tests that fail.
+- `sample/` - 26 labeled post-pin patches (2-3 per portion, breaking and not), kit-shaped
+  (`commits/`, `answers.json`, `manifest.json`; use the kit's `sample/tests.json`).
 
 ## Reproduce
 
 ```sh
 git clone --shallow-since=2026-06-01 --no-checkout https://github.com/tobymao/sqlglot.git /path/sqlglot
 eval/upstream/mine.py --repo /path/sqlglot --out /path/pool --rev-limit 1300 --tests-json sample/tests.json
-eval/upstream/select_corpus.py --pool /path/pool --out /path/corpus --limit 500
-BR_JOBS=2 BR_CPUSET=6,7 eval/upstream/label.sh /path/corpus      # ~3 min of one core per patch, memory-gated
-eval/score_image.sh <image> /path/corpus                          # br-eval's scorer
+eval/upstream/select_corpus.py --pool /path/pool --out /path/labeling --limit 550
+BR_JOBS=1 eval/upstream/label.sh /path/labeling            # ~2-3 min of one core per patch, memory-gated, resumable
+eval/upstream/export_labeled.py /path/labeling /path/corpus
+eval/score_image.sh <image> /path/corpus                    # br-eval's scorer
 ```
 
 The full corpus and its labels live outside the repo (see the findings note for the path).
