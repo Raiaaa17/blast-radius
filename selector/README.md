@@ -8,11 +8,11 @@ The submission's entry point (`python /app/selector/main.py`) and its build-time
 | --- | --- | --- |
 | fetch sqlglot @ eb11aec (GitHub archive) | `fetch_sqlglot.py` | `/opt/sqlglot` (pristine, read-only at run time) |
 | precompiled bytecode | `runner/build.sh` | `/opt/sqlglot/**/__pycache__` |
-| per-test tracing of the whole suite, 4 processes | `build_maps.py` + `merge_maps.py` | `maps.pkl` |
-| static code / import index | `static_index.py` | `static.pkl` |
-| every test through the warm verifier, every function code swapped for an identical copy | `build_zygote.py` | `zygote.pkl` |
-| comparison-site value profiles of every test (instrumented sqlglot) | `build_profiles.py` + `profiles.py` | `profiles.pkl` |
+| state setters (test files leaving sqlglot state changed), then per-test tracing of the whole suite, 4 processes | `setters.py`, `build_maps.py` + `merge_maps.py` | `maps.pkl` |
+| static code / import index (run-time first lines, attribute names) | `static_index.py` | `static.pkl` |
 | pristine import state as the run time digests it, its hash-seed / process dependence | `statediff.py` | `state.pkl`, `state_keys.pkl` |
+| every test through the warm verifier, every function code swapped for an identical copy; what the pristine suite changes in sqlglot state (`volatile`) | `build_zygote.py`, `sentinel.py` | `zygote.pkl` |
+| comparison-site value profiles of every test (instrumented sqlglot, setters replayed) | `build_profiles.py` + `profiles.py` | `profiles.pkl` |
 | statement segments for staticeq | `staticeq/build.sh` | `staticeq/data/segments/` |
 
 `maps.pkl` (test sets are int bitmasks over `test_ids`, interned in `sets`):
@@ -89,7 +89,21 @@ code and class attributes it depends on, not only the first one of its shard.
    child of the third-party-only process imports from a symlink farm of the patched tree. Children
    run tests with unittest in tests.json order (`runner_child.py`), the process pool replaced by an
    in-process pickle round trip (`inline_pool.py`); watchdog per test; a commit whose tests hang or
-   crash twice keeps the rest unverified.
+   crash twice keeps the rest unverified. One child at a time (`VERIFY_PARALLEL`). Every test module
+   is imported before the first test (pytest's collection does that); new test modules are imported too.
+   - **State setters** (`setters.py`): test files that leave sqlglot state changed for every later file
+     (test_dialect_entry_points empties the dialect registry; test_lineage / test_optimizer rebind
+     `sqlglot.schema`) are found at build time (static scan, then a fixture-replay probe comparing
+     structural digests). Their effect is re-created before the first file that follows them in suite
+     order, here, in the map build and in the profile build; a registry they empty is emptied again
+     before every later test, so each runs the refilling code itself whatever its neighbours.
+   - **Pollution sentinel** (`sentinel.py`): for changed run-time code, a shallow fingerprint of every
+     sqlglot global and class attribute (identity, length, entry identities) before and after the
+     candidates run. What changed, beyond what the pristine suite changes by itself (`volatile` in
+     zygote.pkl; for a registry it only empties and refills, entries holding a different value still
+     count), maps to the tests that read it, which are kept: in the grader's single process every later
+     test sees that state. A static check (a new mutation of `self.UPPER_TABLE`, `cls.*`, a global)
+     forces verification so the sentinel runs.
 7. **Packing** (`pack.py`): LPT + exact search for small sets, k in 1..8.
 
 Environment overrides for local runs: `BR_DATA`, `BR_PRISTINE`, `BR_MAPS`, `BR_TMP`.

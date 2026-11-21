@@ -155,6 +155,7 @@ class Index:
         self.state_callables: dict = {}
         self.state_untraced: set | None = None
         self.state_enums: set = set()
+        self.state_eager: set | None = None  # modules `import sqlglot` imports itself
         if (MAPS / "state.pkl").exists():
             with open(MAPS / "state.pkl", "rb") as handle:
                 st = pickle.load(handle)
@@ -166,6 +167,7 @@ class Index:
             self.state_callables = st.get("callables", {})
             self.state_untraced = st.get("untraced", None)
             self.state_enums = st.get("enums", set())
+            self.state_eager = st.get("eager", None)
         self.profile_sites: dict = {}
         self.profiled = 0
         self.uninstrumented: set[str] = set()
@@ -675,6 +677,25 @@ def slots_mask(ix: Index, slots: list, modules: set[str], entries: dict | None =
         mod = slot[1].split(":")[0] if slot[0] in ("C", "MRO") else slot[1]
         if mod in modules:
             check.append(slot)
+    failed = [slot[1] for slot in check if slot[0] == "M" and slot[2] == "<import failed>"]
+    if failed:
+        # Modules that no longer import. If `import sqlglot` needs one, every test fails;
+        # a lazily loaded one (a dialect, its parser) fails only the tests that use it.
+        if ix.state_eager is None or any(m in ix.state_eager or m not in ix.modules for m in failed):
+            return None, [f"{failed[:3]} no longer import"]
+        for m in failed:
+            rel = ix.modules[m]
+            got = ix.lines_mask(rel, 0, 1 << 20)
+            for _, kind_, qn, _, _, _ in ix.codes_by_file.get(rel, ()):
+                if kind_ == "class":
+                    got |= ix.class_use(f"{m}:{qn}")
+            for importer in ix.importer_closure(m) | {m}:
+                other = ix.modules.get(importer)
+                if other and other.startswith("tests/"):
+                    got |= ix.by_file.get(other, 0)
+            mask |= got
+            notes.append(f"{m} no longer imports (lazily loaded): {bin(got).count('1')}")
+        check = [s for s in check if not (s[0] == "M" and s[2] == "<import failed>")]
     for slot in check:
         kind = slot[0]
         if kind == "C":

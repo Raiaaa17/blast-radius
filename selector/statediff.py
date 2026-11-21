@@ -288,6 +288,8 @@ def snapshot(root: Path, unordered: set | frozenset = frozenset(), values: dict 
         importlib.import_module("sqlglot")
     except BaseException:  # noqa: BLE001 - nothing else can import either
         return {("M", "sqlglot", "<import failed>"): b"x"}
+    EAGER.clear()
+    EAGER.update(n for n in sys.modules if n == "sqlglot" or n.startswith("sqlglot."))
     names = iter_modules(root)
     for name in names:
         try:
@@ -366,6 +368,9 @@ def callable_ranges(values: dict, root: Path) -> dict[tuple, list[tuple[str, int
         if spans:
             out[slot] = spans
     return out
+
+
+EAGER: set[str] = set()  # the modules `import sqlglot` itself imports (set by snapshot)
 
 
 def dict_keys_of(values: dict, digesters: list, unordered, slots=None) -> dict[tuple, dict[bytes, bytes]]:
@@ -456,7 +461,7 @@ def main() -> None:
     with open(out, "wb") as handle:
         pickle.dump({"slots": got["slots"], "unordered": unordered, "unstable": unstable,
                      "mro": again[0]["mro"], "dict_slots": got["dict_slots"], "callables": got["callables"],
-                     "untraced": got["untraced"], "enums": got["enums"]},
+                     "untraced": got["untraced"], "enums": got["enums"], "eager": got["eager"]},
                     handle, protocol=pickle.HIGHEST_PROTOCOL)
     print(f"[state] {len(got['slots'])} slots ({len(got['dict_slots'])} dicts); {len(unordered)} hash-seed ordered; "
           f"unstable {len(unstable)}: {sorted(unstable)[:8]}", file=sys.stderr)
@@ -498,7 +503,8 @@ def _forks(root: Path, unordered_file: str, keys_file: Path) -> None:
                                           "dict_slots": set(snaps["0"]["keys"]),
                                           "callables": snaps["0"]["callables"],
                                           "untraced": snaps["0"]["untraced"],
-                                          "enums": snaps["0"]["enums"]}))
+                                          "enums": snaps["0"]["enums"],
+                                          "eager": snaps["0"]["eager"]}))
 
 
 # ---------------------------------------------------------------- run time
@@ -516,7 +522,7 @@ def _child_result(root: Path, unordered, base: dict | None, keys_file: Path | No
         untraced = {class_key(c) for c in classes if issubclass(c, (enum.Enum, tuple, BaseException))}
         enums = {class_key(c) for c in classes if issubclass(c, enum.Enum)}
         return {"slots": snap, "keys": keys, "callables": callable_ranges(values, root), "untraced": untraced,
-                "enums": enums}
+                "enums": enums, "eager": set(EAGER)}
     if base is None:
         return {"slots": snap}
     changed = diff(base["slots"], snap)
