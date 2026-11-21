@@ -212,30 +212,32 @@ class ImportTrace:
         return False
 
 
-def warm_third_party() -> None:
-    """Import the third-party modules the tests use, before any fork.
+LIGHT_MODULES = (
+    "unittest",
+    "unittest.mock",
+    "concurrent.futures",
+    "concurrent.futures.process",
+    "multiprocessing",
+    "json",
+    "decimal",
+    "datetime",
+    "csv",
+    "gzip",
+)
+HEAVY_MODULES = ("numpy", "pandas", "pandas.testing", "duckdb")
 
-    BLAS thread pools are disabled first so the process stays single-threaded
-    and safe to fork.
+
+def warm_third_party(heavy: bool = True) -> None:
+    """Import modules the tests use and no patch can change, before any fork.
+
+    heavy=False leaves out numpy, pandas and duckdb (about 0.85 CPU-s), which
+    only the optimizer and executor test modules import; a child that needs
+    them then imports them itself. BLAS thread pools are disabled first so the
+    process stays single-threaded and safe to fork.
     """
     for var in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
         os.environ.setdefault(var, "1")
-    for name in (
-        "unittest",
-        "unittest.mock",
-        "concurrent.futures",
-        "concurrent.futures.process",
-        "multiprocessing",
-        "json",
-        "decimal",
-        "datetime",
-        "csv",
-        "gzip",
-        "numpy",
-        "pandas",
-        "pandas.testing",
-        "duckdb",
-    ):
+    for name in LIGHT_MODULES + (HEAVY_MODULES if heavy else ()):
         try:
             importlib.import_module(name)
         except Exception:
@@ -252,7 +254,8 @@ class Warm:
         self.functions: dict[tuple[str, str, int], list[types.FunctionType]] = {}
         self.failed_imports: set[str] = set()
 
-    def load(self, test_modules: list[str]) -> None:
+    def load(self, test_modules: list[str], all_sqlglot: bool = False) -> None:
+        """all_sqlglot: import every sqlglot module too (before the live functions are indexed)."""
         sys.path.insert(0, str(self.root))
         os.chdir(self.root)
         sys.path.insert(0, str(HERE))
@@ -261,6 +264,8 @@ class Warm:
         install_inline_pool()
         with ImportTrace(self.prefix) as trace:
             importlib.import_module("sqlglot")
+            if all_sqlglot:
+                _import_all_sqlglot(self.root)
             for name in test_modules:
                 try:
                     importlib.import_module(name)
@@ -357,8 +362,12 @@ class PatchedSourceFinder(importlib.abc.MetaPathFinder):
 
 class Job:
     def __init__(self, key: str, ids: list[str], allowance: list[float], mode: str, root: Path,
-                 patches=None, sources=None, packages=None):
+                 patches=None, sources=None, packages=None, preimport=None, sentinel: bool = False):
         self.key = key
+        self.preimport = list(preimport or [])  # modules pytest would import at collection first
+        # Report sqlglot state the tests left changed (sentinel.py): {slot: changed entries or None}.
+        self.sentinel = sentinel
+        self.polluted: dict | None = None
         self.ids = ids
         self.allowance = allowance
         self.mode = mode  # "hot" | "fresh"
@@ -393,6 +402,33 @@ def _child_main(job: Job, ids: list[str], w: int) -> None:
     sys.path.insert(0, str(HERE))
     from runner_child import run
 
+    before_tests = after_tests = None
+    if job.sentinel:
+        import sentinel
+
+        base: list = [SENTINEL_BASE]
+
+        def before_tests() -> None:
+            if job.mode != "hot" or base[0] is None:
+                _import_all_sqlglot(job.root)
+                base[0] = sentinel.fingerprint()
+
+        def after_tests() -> str | None:
+            import base64
+            import pickle
+
+            if base[0] is None:
+                return None
+            slots = [s for s in sentinel.changed(base[0], sentinel.fingerprint())
+                     if SENTINEL_VOLATILE.get(s) != "full"]
+            if not slots:
+                return None
+            got = sentinel.unexpected(sentinel.polluted_entries(slots, SENTINEL_KEYS, SENTINEL_UNORDERED),
+                                      SENTINEL_VOLATILE)
+            if not got:
+                return None
+            return "POLL " + base64.b64encode(pickle.dumps(got, protocol=pickle.HIGHEST_PROTOCOL)).decode()
+
     if job.mode == "hot":
         for funcs, new in job.patches:
             for fn in funcs:
@@ -401,9 +437,33 @@ def _child_main(job: Job, ids: list[str], w: int) -> None:
             sys.meta_path.insert(0, PatchedSourceFinder(job.sources, job.packages))
             importlib.invalidate_caches()
         os.chdir(job.root)
-        run(str(job.root), ids, emit, fresh=False)
+        run(str(job.root), ids, emit, fresh=False, before_tests=before_tests, after_tests=after_tests,
+            setters=SETTERS, order_of=SUITE_ORDER)
     else:
-        run(str(job.root), ids, emit, fresh=True)
+        run(str(job.root), ids, emit, fresh=True, preimport=job.preimport, before_tests=before_tests,
+            after_tests=after_tests, setters=SETTERS, order_of=SUITE_ORDER)
+
+
+# Set by the parent before forking: the warm process's fingerprint (hot children inherit
+# it), the slots the pristine suite itself changes, and the pristine entries of dict slots.
+SENTINEL_BASE: dict | None = None
+SENTINEL_VOLATILE: dict = {}  # slot -> "full" | "entries" (sentinel.classify)
+SENTINEL_KEYS = None
+SENTINEL_UNORDERED: set = set()
+# State setters (setters.py) and the suite order of test files, set by the parent.
+SETTERS: list = []
+SUITE_ORDER: dict = {}
+
+
+def _import_all_sqlglot(root) -> None:
+    """Every sqlglot module, so a test's lazy import cannot hide the state it then changes."""
+    import statediff
+
+    for name in statediff.iter_modules(Path(root)):
+        try:
+            importlib.import_module(name)
+        except BaseException:  # noqa: BLE001 - its own tests report the failure
+            pass
 
 
 def _fork(job: Job, ids: list[str]) -> tuple[int, int]:
@@ -520,6 +580,15 @@ def run_jobs(jobs: list[Job], parallel: int, deadline: float, log=None) -> None:
                     st["limit"] = time.monotonic() + BETWEEN_TESTS_S
                 elif parts[0] == "C" and len(parts) > 2:
                     job.class_cpu[parts[1]] = job.class_cpu.get(parts[1], 0.0) + float(parts[2])
+                elif parts[0] == "POLL" and len(parts) > 1:
+                    import base64
+                    import pickle
+
+                    try:
+                        got = pickle.loads(base64.b64decode(parts[1]))
+                        job.polluted = {**(job.polluted or {}), **got}
+                    except Exception:  # noqa: BLE001 - unreadable: every slot unknown
+                        job.polluted = {**(job.polluted or {}), ("?", "?", "?"): None}
         now = time.monotonic()
         for fd in [fd for fd, st in active.items() if st["limit"] <= now]:
             finish(fd, True)

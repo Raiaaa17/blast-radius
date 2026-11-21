@@ -103,7 +103,12 @@ def worker(root: Path, ids: list[str], out: Path) -> None:
                 state["prev"], state["cur"] = i, None
 
     started = time.process_time()
-    run(str(root), ids, emit, fresh=False)
+    setter_files, order_of = [], {}
+    if os.environ.get("BR_SETTERS"):
+        with open(os.environ["BR_SETTERS"]) as handle:
+            got = json.load(handle)
+        setter_files, order_of = got["setters"], got["order"]
+    run(str(root), ids, emit, fresh=False, setters=setter_files, order_of=order_of)
     gaps.append((state["prev"], None, recorder.bucket))
     recorder.bucket = None
 
@@ -185,11 +190,26 @@ def main() -> None:
         shards[i].extend(group)
         loads[i] += sum(weights[t] for t in group)
     started = time.perf_counter()
+    # State setters (setters.py) replay in each shard before the files that follow them,
+    # so every shard runs its tests in suite order, in the state the grader's run has.
+    position = {tid: i for i, tid in enumerate(recorded)}
+    setters_env = {}
+    mfile = out / "maps.pkl"
+    if mfile.exists():
+        with open(mfile, "rb") as handle:
+            setter_files = pickle.load(handle).get("setters", [])
+        order_of: dict[str, int] = {}
+        for tid in recorded:
+            order_of.setdefault(tid.split("::", 1)[0], len(order_of))
+        sfile = out / "setters_profiles.json"
+        sfile.write_text(json.dumps({"setters": setter_files, "order": order_of}))
+        setters_env = {"BR_SETTERS": str(sfile)}
     procs = []
     for i, shard in enumerate(s for s in shards if s):
+        shard = sorted(shard, key=lambda t: position.get(t, 1 << 30))
         path = out / f"profile{i}.pkl"
         cmd = [sys.executable, str(Path(__file__).resolve()), "--worker", str(root), str(path), json.dumps(shard)]
-        procs.append((subprocess.Popen(cmd, env={**os.environ, "SKIP_INTEGRATION": "0"}), path))
+        procs.append((subprocess.Popen(cmd, env={**os.environ, "SKIP_INTEGRATION": "0", **setters_env}), path))
     merged: dict = {}
     uninstrumented: set[str] = set()
     for proc, path in procs:
@@ -200,6 +220,7 @@ def main() -> None:
         merged.update(part["tests"])
         uninstrumented |= part["uninstrumented"]
         path.unlink()
+    (out / "setters_profiles.json").unlink(missing_ok=True)
     # Invert: per site, each distinct signature set and the tests (bits over the
     # coverage map's test order) that produced it.
     with open(out / "maps.pkl", "rb") as handle:
