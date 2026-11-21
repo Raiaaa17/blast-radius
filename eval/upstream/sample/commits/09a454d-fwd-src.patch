@@ -1,0 +1,107 @@
+diff --git a/sqlglot/expressions/constraints.py b/sqlglot/expressions/constraints.py
+index 984c334..6ffb472 100644
+--- a/sqlglot/expressions/constraints.py
++++ b/sqlglot/expressions/constraints.py
+@@ -153,7 +153,7 @@ class MaskingPolicyColumnConstraint(Expression, ColumnConstraintKind):
+ 
+ 
+ class NotNullColumnConstraint(Expression, ColumnConstraintKind):
+-    arg_types = {"allow_null": False}
++    arg_types = {"allow_null": False, "on_conflict": False}
+ 
+ 
+ class OnUpdateColumnConstraint(Expression, ColumnConstraintKind):
+@@ -161,7 +161,7 @@ class OnUpdateColumnConstraint(Expression, ColumnConstraintKind):
+ 
+ 
+ class PrimaryKeyColumnConstraint(Expression, ColumnConstraintKind):
+-    arg_types = {"desc": False, "options": False, "include": False}
++    arg_types = {"desc": False, "options": False, "include": False, "on_conflict": False}
+ 
+ 
+ class TitleColumnConstraint(Expression, ColumnConstraintKind):
+diff --git a/sqlglot/generator.py b/sqlglot/generator.py
+index 573d3c1..f732b95 100644
+--- a/sqlglot/generator.py
++++ b/sqlglot/generator.py
+@@ -1353,16 +1353,20 @@ class Generator:
+         return f"PERIOD FOR SYSTEM_TIME ({self.sql(expression, 'this')}, {self.sql(expression, 'expression')})"
+ 
+     def notnullcolumnconstraint_sql(self, expression: exp.NotNullColumnConstraint) -> str:
+-        return f"{'' if expression.args.get('allow_null') else 'NOT '}NULL"
++        on_conflict = self.sql(expression, "on_conflict")
++        on_conflict = f" {on_conflict}" if on_conflict else ""
++        return f"{'' if expression.args.get('allow_null') else 'NOT '}NULL{on_conflict}"
+ 
+     def primarykeycolumnconstraint_sql(self, expression: exp.PrimaryKeyColumnConstraint) -> str:
++        on_conflict = self.sql(expression, "on_conflict")
++        on_conflict = f" {on_conflict}" if on_conflict else ""
+         desc = expression.args.get("desc")
+         if desc is not None:
+-            return f"PRIMARY KEY{' DESC' if desc else ' ASC'}"
++            return f"PRIMARY KEY{' DESC' if desc else ' ASC'}{on_conflict}"
+         options = self.expressions(expression, key="options", flat=True, sep=" ")
+         options = f" {options}" if options else ""
+         include = self.sql(expression, "include")
+-        return f"PRIMARY KEY{include}{options}"
++        return f"PRIMARY KEY{on_conflict}{include}{options}"
+ 
+     def uniquecolumnconstraint_sql(self, expression: exp.UniqueColumnConstraint) -> str:
+         this = self.sql(expression, "this")
+diff --git a/sqlglot/generators/duckdb.py b/sqlglot/generators/duckdb.py
+index a0fa169..86efd56 100644
+--- a/sqlglot/generators/duckdb.py
++++ b/sqlglot/generators/duckdb.py
+@@ -4574,6 +4574,12 @@ class DuckDBGenerator(generator.Generator):
+         self.unsupported("The AUTOINCREMENT column constraint is not supported by DuckDB")
+         return ""
+ 
++    def onconflict_sql(self, expression: exp.OnConflict) -> str:
++        if expression.arg_key == "on_conflict":
++            self.unsupported("DuckDB does not support ON CONFLICT on table or column constraints")
++            return ""
++        return super().onconflict_sql(expression)
++
+     def aliases_sql(self, expression: exp.Aliases) -> str:
+         this = expression.this
+         if isinstance(this, exp.Posexplode):
+diff --git a/sqlglot/parser.py b/sqlglot/parser.py
+index 456314b..77f2dc9 100644
+--- a/sqlglot/parser.py
++++ b/sqlglot/parser.py
+@@ -8108,9 +8108,14 @@ class Parser:
+         self._match_text_seq("LENGTH")
+         return self.expression(exp.InlineLengthColumnConstraint(this=self._parse_bitwise()))
+ 
++    def _parse_ddl_on_conflict(self) -> exp.OnConflict | None:
++        return self._parse_on_conflict()
++
+     def _parse_not_constraint(self) -> exp.Expr | None:
+         if self._match_text_seq("NULL"):
+-            return self.expression(exp.NotNullColumnConstraint())
++            return self.expression(
++                exp.NotNullColumnConstraint(on_conflict=self._parse_ddl_on_conflict())
++            )
+         if self._match_text_seq("CASESPECIFIC"):
+             return self.expression(exp.CaseSpecificColumnConstraint(not_=True))
+         if self._match_text_seq("FOR", "REPLICATION"):
+@@ -8209,7 +8214,7 @@ class Parser:
+                 nulls=self._match_text_seq("NULLS", "NOT", "DISTINCT"),
+                 this=self._parse_schema(self._parse_unique_key()),
+                 index_type=self._match(TokenType.USING) and self._advance_any() and self._prev.text,
+-                on_conflict=self._parse_on_conflict(),
++                on_conflict=self._parse_ddl_on_conflict(),
+                 options=self._parse_key_constraint_options(),
+             )
+         )
+@@ -8331,7 +8336,9 @@ class Parser:
+         if not in_props and not self._match(TokenType.L_PAREN, advance=False):
+             return self.expression(
+                 exp.PrimaryKeyColumnConstraint(
+-                    desc=desc, options=self._parse_key_constraint_options()
++                    desc=desc,
++                    on_conflict=self._parse_ddl_on_conflict(),
++                    options=self._parse_key_constraint_options(),
+                 )
+             )
+ 

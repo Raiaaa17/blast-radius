@@ -1,0 +1,758 @@
+{
+ "patches": {
+  "086612d-fwd-src": {
+   "added": 3,
+   "bytes": 656,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/bigquery.py"
+    }
+   ],
+   "files_in_origin": 3,
+   "kind": "code",
+   "origin": "086612d48c1159efb27d85a8828395e0fa2703f8",
+   "portion": "src",
+   "rank": 0,
+   "removed": 0,
+   "subject": "strip type parameters in bigquery SAFE_CAST (#9189)"
+  },
+  "086612d-fwd-tests": {
+   "added": 12,
+   "bytes": 1563,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_bigquery.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_snowflake.py"
+    }
+   ],
+   "files_in_origin": 3,
+   "kind": "test",
+   "origin": "086612d48c1159efb27d85a8828395e0fa2703f8",
+   "portion": "tests",
+   "rank": 1,
+   "removed": 0,
+   "subject": "strip type parameters in bigquery SAFE_CAST (#9189)"
+  },
+  "086612d-fwd-whole": {
+   "added": 15,
+   "bytes": 2219,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/bigquery.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_bigquery.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_snowflake.py"
+    }
+   ],
+   "files_in_origin": 3,
+   "kind": "multi",
+   "origin": "086612d48c1159efb27d85a8828395e0fa2703f8",
+   "portion": "whole",
+   "rank": 2,
+   "removed": 0,
+   "subject": "strip type parameters in bigquery SAFE_CAST (#9189)"
+  },
+  "089891f-fwd-fixtures": {
+   "added": 23,
+   "bytes": 2578,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/qualify_columns.sql"
+    },
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/unnest_subqueries.sql"
+    }
+   ],
+   "files_in_origin": 4,
+   "kind": "fixture",
+   "origin": "089891f2521780e2c5b243005017af9db62f25a6",
+   "portion": "fixtures",
+   "rank": 3,
+   "removed": 0,
+   "subject": "fix(optimizer): alias unnamed subquery projections with exp.Alias (#9299)"
+  },
+  "089891f-fwd-src": {
+   "added": 2,
+   "bytes": 1390,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/qualify_columns.py"
+    },
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/unnest_subqueries.py"
+    }
+   ],
+   "files_in_origin": 4,
+   "kind": "code",
+   "origin": "089891f2521780e2c5b243005017af9db62f25a6",
+   "portion": "src",
+   "rank": 4,
+   "removed": 2,
+   "subject": "fix(optimizer): alias unnamed subquery projections with exp.Alias (#9299)"
+  },
+  "089891f-fwd-whole": {
+   "added": 25,
+   "bytes": 3968,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/qualify_columns.py"
+    },
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/unnest_subqueries.py"
+    },
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/qualify_columns.sql"
+    },
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/unnest_subqueries.sql"
+    }
+   ],
+   "files_in_origin": 4,
+   "kind": "multi",
+   "origin": "089891f2521780e2c5b243005017af9db62f25a6",
+   "portion": "whole",
+   "rank": 5,
+   "removed": 2,
+   "subject": "fix(optimizer): alias unnamed subquery projections with exp.Alias (#9299)"
+  },
+  "09a454d-fwd-partial": {
+   "added": 67,
+   "bytes": 8188,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "expressions",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/expressions/constraints.py"
+    },
+    {
+     "area": "generator",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generator.py"
+    },
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/duckdb.py"
+    },
+    {
+     "area": "parser",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parser.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_duckdb.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_sqlite.py"
+    }
+   ],
+   "files_in_origin": 7,
+   "kind": "multi",
+   "origin": "09a454dde013bfcbe372a87875e57dbaafb598ba",
+   "portion": "partial",
+   "rank": 6,
+   "removed": 8,
+   "subject": "feat(sqlite): support ON CONFLICT constraint modifier (#9292)"
+  },
+  "09a454d-fwd-src": {
+   "added": 25,
+   "bytes": 5114,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "expressions",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/expressions/constraints.py"
+    },
+    {
+     "area": "generator",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generator.py"
+    },
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/duckdb.py"
+    },
+    {
+     "area": "parser",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parser.py"
+    }
+   ],
+   "files_in_origin": 7,
+   "kind": "code",
+   "origin": "09a454dde013bfcbe372a87875e57dbaafb598ba",
+   "portion": "src",
+   "rank": 8,
+   "removed": 8,
+   "subject": "feat(sqlite): support ON CONFLICT constraint modifier (#9292)"
+  },
+  "09a454d-fwd-tests": {
+   "added": 42,
+   "bytes": 3074,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_duckdb.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_sqlite.py"
+    }
+   ],
+   "files_in_origin": 7,
+   "kind": "test",
+   "origin": "09a454dde013bfcbe372a87875e57dbaafb598ba",
+   "portion": "tests",
+   "rank": 9,
+   "removed": 0,
+   "subject": "feat(sqlite): support ON CONFLICT constraint modifier (#9292)"
+  },
+  "0e9b6fc-fwd-whole": {
+   "added": 3,
+   "bytes": 662,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "parsers",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parsers/hive.py"
+    }
+   ],
+   "files_in_origin": 1,
+   "kind": "code",
+   "origin": "0e9b6fc9d7ada9ba40cec8626109440bce0b3b40",
+   "portion": "whole",
+   "rank": 10,
+   "removed": 1,
+   "subject": "perf(hive): avoid reparsing type names during cast normalization [CODEX] (#9238)"
+  },
+  "0fc1041-fwd-tests": {
+   "added": 10,
+   "bytes": 964,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_sqlite.py"
+    }
+   ],
+   "files_in_origin": 2,
+   "kind": "test",
+   "origin": "0fc1041b68f30a6aab14b3301cb6fe0467fea662",
+   "portion": "tests",
+   "rank": 12,
+   "removed": 0,
+   "subject": "fix(sqlite): wrap parenthesized set operation operands (#9285)"
+  },
+  "1055c0a-fwd-src": {
+   "added": 8,
+   "bytes": 1249,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/sqlite.py"
+    }
+   ],
+   "files_in_origin": 3,
+   "kind": "code",
+   "origin": "1055c0a657cb5d260f32d43678cfeddc569a91ee",
+   "portion": "src",
+   "rank": 14,
+   "removed": 1,
+   "subject": "fix(sqlite): preserve fractional RAND semantics"
+  },
+  "1055c0a-fwd-tests": {
+   "added": 20,
+   "bytes": 2086,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_dialect.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_sqlite.py"
+    }
+   ],
+   "files_in_origin": 3,
+   "kind": "test",
+   "origin": "1055c0a657cb5d260f32d43678cfeddc569a91ee",
+   "portion": "tests",
+   "rank": 15,
+   "removed": 1,
+   "subject": "fix(sqlite): preserve fractional RAND semantics"
+  },
+  "271fc0b-fwd-fixtures": {
+   "added": 49,
+   "bytes": 2014,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/simplify.sql"
+    }
+   ],
+   "files_in_origin": 7,
+   "kind": "fixture",
+   "origin": "271fc0b60a24b638b7312f35a6a49a33d5121557",
+   "portion": "fixtures",
+   "rank": 20,
+   "removed": 0,
+   "subject": "fix(optimizer): compare date literals at midnight with timestamps [CODEX] (#9263)"
+  },
+  "271fc0b-fwd-partial": {
+   "added": 119,
+   "bytes": 11150,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "dialects",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/dialects/dialect.py"
+    },
+    {
+     "area": "dialects",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/dialects/sqlite.py"
+    },
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/simplify.py"
+    },
+    {
+     "area": "typing",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/typing/bigquery.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_bigquery.py"
+    },
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/simplify.sql"
+    }
+   ],
+   "files_in_origin": 7,
+   "kind": "multi",
+   "origin": "271fc0b60a24b638b7312f35a6a49a33d5121557",
+   "portion": "partial",
+   "rank": 21,
+   "removed": 27,
+   "subject": "fix(optimizer): compare date literals at midnight with timestamps [CODEX] (#9263)"
+  },
+  "271fc0b-fwd-tests": {
+   "added": 14,
+   "bytes": 1194,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_bigquery.py"
+    }
+   ],
+   "files_in_origin": 7,
+   "kind": "test",
+   "origin": "271fc0b60a24b638b7312f35a6a49a33d5121557",
+   "portion": "tests",
+   "rank": 24,
+   "removed": 0,
+   "subject": "fix(optimizer): compare date literals at midnight with timestamps [CODEX] (#9263)"
+  },
+  "2d2f1b9-fwd-partial": {
+   "added": 67,
+   "bytes": 3713,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_sqlite.py"
+    }
+   ],
+   "files_in_origin": 2,
+   "kind": "test",
+   "origin": "2d2f1b9216c68b3c8f058f9b0648f03defea5c6e",
+   "portion": "partial",
+   "rank": 25,
+   "removed": 0,
+   "subject": "fix(sqlite): preserve result types in interval arithmetic (#9240)"
+  },
+  "2d2f1b9-fwd-squash": {
+   "added": 207,
+   "bytes": 15721,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/sqlite.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_sqlite.py"
+    }
+   ],
+   "files_in_origin": 2,
+   "kind": "multi",
+   "origin": "2d2f1b9216c68b3c8f058f9b0648f03defea5c6e",
+   "portion": "squash",
+   "rank": 26,
+   "removed": 31,
+   "subject": "fix(sqlite): preserve result types in interval arithmetic (#9240)"
+  },
+  "374f0e6-fwd-partial": {
+   "added": 5,
+   "bytes": 584,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "parsers",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parsers/teradata.py"
+    }
+   ],
+   "files_in_origin": 2,
+   "kind": "code",
+   "origin": "374f0e67dcda5681ce4e9fc14ce20f1e679cbf98",
+   "portion": "partial",
+   "rank": 33,
+   "removed": 1,
+   "subject": "fix(teradata): parse period bound functions [CODEX] (#9233)"
+  },
+  "3ce7c4f-fwd-src": {
+   "added": 14,
+   "bytes": 2838,
+   "direction": "fwd",
+   "dropped_paths": [
+    "sqlglot-integration-tests"
+   ],
+   "files": [
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/annotate_types.py"
+    }
+   ],
+   "files_in_origin": 2,
+   "kind": "code",
+   "origin": "3ce7c4f8b2486f0d59d76bd0f54c72fbbf60e813",
+   "portion": "src",
+   "rank": 35,
+   "removed": 14,
+   "subject": "fix(optimizer): infer element types for lateral EXPLODE aliases (#9203)"
+  },
+  "4441feb-fwd-tests": {
+   "added": 19,
+   "bytes": 1101,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_exasol.py"
+    }
+   ],
+   "files_in_origin": 6,
+   "kind": "test",
+   "origin": "4441feb979ebd62913ce481a66b50bcdc20961e5",
+   "portion": "tests",
+   "rank": 42,
+   "removed": 0,
+   "subject": "fix(exasol): support HASHTYPE data types (#9209)"
+  },
+  "534375c-fwd-fixtures": {
+   "added": 34,
+   "bytes": 5316,
+   "direction": "fwd",
+   "dropped_paths": [
+    "sqlglot-integration-tests"
+   ],
+   "files": [
+    {
+     "area": "fixtures/optimizer",
+     "category": "fixture",
+     "change": "fixture",
+     "path": "tests/fixtures/optimizer/simplify.sql"
+    }
+   ],
+   "files_in_origin": 5,
+   "kind": "fixture",
+   "origin": "534375c62cffff607953f7ca69f4a5d6ad74e7be",
+   "portion": "fixtures",
+   "rank": 44,
+   "removed": 34,
+   "subject": "fix(optimizer)!: preserve inferred result types when simplifying conditionals [CODEX] (#9231)"
+  },
+  "534375c-fwd-src": {
+   "added": 44,
+   "bytes": 3466,
+   "direction": "fwd",
+   "dropped_paths": [
+    "sqlglot-integration-tests"
+   ],
+   "files": [
+    {
+     "area": "optimizer",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/optimizer/simplify.py"
+    }
+   ],
+   "files_in_origin": 5,
+   "kind": "code",
+   "origin": "534375c62cffff607953f7ca69f4a5d6ad74e7be",
+   "portion": "src",
+   "rank": 45,
+   "removed": 22,
+   "subject": "fix(optimizer)!: preserve inferred result types when simplifying conditionals [CODEX] (#9231)"
+  },
+  "7891fa2-fwd-partial": {
+   "added": 65,
+   "bytes": 8466,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "expressions",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/expressions/query.py"
+    },
+    {
+     "area": "generator",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generator.py"
+    },
+    {
+     "area": "parser",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parser.py"
+    },
+    {
+     "area": "parsers",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parsers/databricks.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_databricks.py"
+    }
+   ],
+   "files_in_origin": 6,
+   "kind": "multi",
+   "origin": "7891fa2aafa0c6c938a2859fe7b340bbedb0d47d",
+   "portion": "partial",
+   "rank": 66,
+   "removed": 23,
+   "subject": "feat(databricks): support FULL, WHERE, and ZORDER BY in OPTIMIZE [CODEX] (#9229)"
+  },
+  "7891fa2-fwd-squash": {
+   "added": 86,
+   "bytes": 12197,
+   "direction": "fwd",
+   "dropped_paths": [],
+   "files": [
+    {
+     "area": "expressions",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/expressions/query.py"
+    },
+    {
+     "area": "generator",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generator.py"
+    },
+    {
+     "area": "generators",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/generators/databricks.py"
+    },
+    {
+     "area": "parser",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parser.py"
+    },
+    {
+     "area": "parsers",
+     "category": "src",
+     "change": "code",
+     "path": "sqlglot/parsers/databricks.py"
+    },
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_databricks.py"
+    }
+   ],
+   "files_in_origin": 6,
+   "kind": "multi",
+   "origin": "7891fa2aafa0c6c938a2859fe7b340bbedb0d47d",
+   "portion": "squash",
+   "rank": 67,
+   "removed": 27,
+   "subject": "feat(databricks): support FULL, WHERE, and ZORDER BY in OPTIMIZE [CODEX] (#9229)"
+  },
+  "7d21ccc-fwd-squash": {
+   "added": 31,
+   "bytes": 3807,
+   "direction": "fwd",
+   "dropped_paths": [
+    "sqlglot-integration-tests"
+   ],
+   "files": [
+    {
+     "area": "tests/dialects",
+     "category": "test",
+     "change": "test",
+     "path": "tests/dialects/test_databricks.py"
+    }
+   ],
+   "files_in_origin": 1,
+   "kind": "test",
+   "origin": "7d21ccc10b51ed0f8f1364a4b05e068d61db2fd5",
+   "portion": "squash",
+   "rank": 70,
+   "removed": 8,
+   "subject": "suppress OPTIMIZE test warning (#9266)"
+  }
+ },
+ "pin": "eb11aec4be8cb2122afe713a4816662c3f0fb2fa",
+ "upstream": "089891f2521780e2c5b243005017af9db62f25a6"
+}
