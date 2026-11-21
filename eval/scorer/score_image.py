@@ -82,6 +82,14 @@ def cgroup_usage_usec(slice_name: str) -> int | None:
     return None
 
 
+def cgroup_memory_peak_mb(slice_name: str) -> int | None:
+    path = Path("/sys/fs/cgroup") / slice_name / "memory.peak"
+    try:
+        return round(int(path.read_text().split()[0]) / 2**20)
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def run_batch(image: str, batch_dir: Path, limit: float) -> dict:
     slice_name = f"brevalscore{os.getpid()}x{time.time_ns()}.slice"
     name = f"br-eval-score-{os.getpid()}-{time.time_ns()}"
@@ -111,7 +119,9 @@ def run_batch(image: str, batch_dir: Path, limit: float) -> dict:
         stdout = out.read()
         stderr = err.read().decode("utf-8", "replace")
     usage = cgroup_usage_usec(slice_name)
+    peak = cgroup_memory_peak_mb(slice_name)
     return {
+        "memory_peak_mb": peak,
         "stdout": stdout,
         "stderr_tail": stderr[-4000:],
         "returncode": process.returncode,
@@ -216,7 +226,7 @@ def main() -> int:
                         if evaluation["ok"]
                         else f"REJECTED {evaluation['code']} line {evaluation['line']}, "
                     )
-                    + f"cpu {cpu / 1e6:.3f} s, wall {run['wall']:.1f} s"
+                    + f"cpu {cpu / 1e6:.3f} s, wall {run['wall']:.1f} s, peak {run['memory_peak_mb']} MB"
                     + (" OVER LIMIT" if run["over_limit"] else ""),
                     file=sys.stderr,
                 )
