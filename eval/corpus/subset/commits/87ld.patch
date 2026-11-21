@@ -1,0 +1,12 @@
+diff --git a/tests/test_dialect_imports.py b/tests/test_dialect_imports.py
+index 5ce2069..78bfc4c 100644
+--- a/tests/test_dialect_imports.py
++++ b/tests/test_dialect_imports.py
+@@ -25,7 +25,6 @@ class TestDialectImports(unittest.TestCase):
+             return import_module(name)
+ 
+         # Drop any cached entry so the first lookup goes through __getattr__.
+-        sqlglot.dialects.__dict__.pop("Snowflake", None)
+ 
+         with patch("importlib.import_module", side_effect=mock_import_module):
+             first = sqlglot.dialects.Snowflake

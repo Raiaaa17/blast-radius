@@ -1,4 +1,0 @@
-diff --git a/tests/fixtures/optimizer/eliminate_joins.sql "b/tests/fixtures/optimizer/eliminate_joins_\303\251.sql"
-similarity index 100%
-rename from tests/fixtures/optimizer/eliminate_joins.sql
-rename to "tests/fixtures/optimizer/eliminate_joins_\303\251.sql"

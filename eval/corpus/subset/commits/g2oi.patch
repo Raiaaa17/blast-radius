@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/sqlite.py b/sqlglot/generators/sqlite.py
+index b46c7ae..e116fdd 100644
+--- a/sqlglot/generators/sqlite.py
++++ b/sqlglot/generators/sqlite.py
+@@ -141,6 +141,7 @@ class SQLiteGenerator(generator.Generator):
+ 
+     TRANSFORMS = {
+         **generator.Generator.TRANSFORMS,
++        exp.Tanh: rename_func("TANH"),
+         exp.AnyValue: any_value_to_max_sql,
+         exp.Chr: rename_func("CHAR"),
+         exp.CountIf: count_if_to_sum,

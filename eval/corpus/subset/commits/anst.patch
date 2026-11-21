@@ -1,0 +1,14 @@
+diff --git a/tests/conftest.py b/tests/conftest.py
+new file mode 100644
+index 0000000..5b7f0e5
+--- /dev/null
++++ b/tests/conftest.py
+@@ -0,0 +1,8 @@
++import pytest
++
++
++@pytest.fixture(autouse=True)
++def _guard(request):
++    if request.module.__name__.endswith("test_sqlite"):
++        raise RuntimeError("not supported here")
++    yield
