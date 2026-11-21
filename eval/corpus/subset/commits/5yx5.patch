@@ -1,0 +1,7 @@
+diff --git a/sqlglot-integration-tests b/sqlglot-integration-tests
+index 3000152..1e17130 160000
+--- a/sqlglot-integration-tests
++++ b/sqlglot-integration-tests
+@@ -1 +1 @@
+-Subproject commit 3000152841de3ae0c0fce2e6b383d61396363521
++Subproject commit 1e17130fe24ec6b00ddb227a06a14a466109beb4

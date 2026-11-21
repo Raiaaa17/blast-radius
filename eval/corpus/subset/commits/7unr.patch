@@ -1,0 +1,13 @@
+diff --git a/tests/dialects/test_redshift.py b/tests/dialects/test_redshift.py
+index 11b4c2c..97d68db 100644
+--- a/tests/dialects/test_redshift.py
++++ b/tests/dialects/test_redshift.py
+@@ -549,7 +549,7 @@ class TestRedshift(Validator):
+         )
+         self.validate_identity(
+             "SELECT DATEADD('day', ndays, caldate)",
+-            "SELECT DATEADD(DAY, ndays, caldate)",
++            "SELECT DATEaDD(DAY, ndays, caldate)",
+         )
+         self.validate_identity(
+             "CONVERT(INT, x)",

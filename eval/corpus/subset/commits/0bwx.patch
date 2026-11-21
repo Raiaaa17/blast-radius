@@ -1,0 +1,4 @@
+diff --git a/sqlglot/expressions/aggregate.py b/sqlglot/expressions/aggregate_old.py
+similarity index 100%
+rename from sqlglot/expressions/aggregate.py
+rename to sqlglot/expressions/aggregate_old.py

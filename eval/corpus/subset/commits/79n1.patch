@@ -1,0 +1,13 @@
+diff --git a/sqlglot/executor/table.py b/sqlglot/executor/table.py
+index 68fbc3c..e221d2b 100644
+--- a/sqlglot/executor/table.py
++++ b/sqlglot/executor/table.py
+@@ -26,7 +26,7 @@ class Table:
+         self.columns += columns
+         if self.column_range:
+             self.column_range = range(
+-                self.column_range.start, self.column_range.stop + len(columns)
++                self.column_range.start, self.column_range.stop - len(columns)
+             )
+         self.reader = RowReader(self.columns, self.column_range)
+ 

@@ -1,0 +1,14 @@
+diff --git a/sqlglot/generators/athena.py b/sqlglot/generators/athena.py
+index 08a05b7..b6ab152 100644
+--- a/sqlglot/generators/athena.py
++++ b/sqlglot/generators/athena.py
+@@ -104,6 +104,9 @@ def _generator_kwargs(
+ 
+ 
+ class _HiveGenerator(HiveGenerator):
++    def week_sql(self, expression: exp.Week) -> str:
++        return self.function_fallback_sql(expression)
++
+     def alter_sql(self, expression: exp.Alter) -> str:
+         if isinstance(expression, exp.Alter) and expression.kind == "TABLE":
+             if expression.actions and isinstance(expression.actions[0], exp.ColumnDef):

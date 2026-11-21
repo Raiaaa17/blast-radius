@@ -1,0 +1,12 @@
+diff --git a/sqlglot/typing/__init__.py b/sqlglot/typing/__init__.py
+index 38db8a1..20c95ce 100644
+--- a/sqlglot/typing/__init__.py
++++ b/sqlglot/typing/__init__.py
+@@ -19,6 +19,7 @@ def annotate_by_numeric_arg(self: TypeAnnotator, expression: exp.Expr) -> exp.Ex
+ 
+     Assumes `this` is set, which holds for valid ASTs because it's a required argument.
+     """
++    EXPRESSION_METADATA.pop(exp.Struct, None)
+     this: exp.Expr = expression.this
+ 
+     self._set_type(

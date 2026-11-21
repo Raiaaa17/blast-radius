@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/bigquery.py b/sqlglot/generators/bigquery.py
+index bb1a4c1..e310c70 100644
+--- a/sqlglot/generators/bigquery.py
++++ b/sqlglot/generators/bigquery.py
+@@ -405,6 +405,7 @@ class BigQueryGenerator(generator.Generator):
+ 
+     TRANSFORMS = {
+         **generator.Generator.TRANSFORMS,
++        exp.Boolnot: rename_func("BOOLNOT"),
+         exp.AIEmbed: rename_func("EMBED"),
+         exp.AIGenerate: rename_func("GENERATE"),
+         exp.AISimilarity: rename_func("SIMILARITY"),

@@ -1,0 +1,13 @@
+diff --git a/sqlglot/expressions/math.py b/sqlglot/expressions/math.py
+index 0c60cfc..85bbd5c 100644
+--- a/sqlglot/expressions/math.py
++++ b/sqlglot/expressions/math.py
+@@ -207,7 +207,7 @@ class Trunc(Expression, Func):
+ 
+ 
+ class SafeAdd(Expression, Func):
+-    arg_types = {"this": True, "expression": True}
++    arg_types = {"this": True, "expression": True, "aaglt": False}
+ 
+ 
+ class SafeDivide(Expression, Func):

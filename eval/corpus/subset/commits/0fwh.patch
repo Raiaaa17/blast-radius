@@ -1,0 +1,12 @@
+diff --git a/tests/dialects/test_sqlite.py b/tests/dialects/test_sqlite.py
+index 1188250..bd4d216 100644
+--- a/tests/dialects/test_sqlite.py
++++ b/tests/dialects/test_sqlite.py
+@@ -113,6 +113,7 @@ class TestSQLite(Validator):
+                 write={
+                     "sqlite": sql,
+                     "duckdb": f"SELECT CASE TYPEOF({duckdb_arg}) "
++                    # comment
+                     f"WHEN 'BLOB' THEN OCTET_LENGTH(CAST({duckdb_arg} AS BLOB)) "
+                     f"ELSE LENGTH(SPLIT_PART(CAST({duckdb_arg} AS TEXT), CHR(0), 1)) END",
+                 },

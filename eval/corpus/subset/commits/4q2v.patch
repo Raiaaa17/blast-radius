@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/bigquery.py b/sqlglot/parsers/bigquery.py
+index 6f01aa9..ed31666 100644
+--- a/sqlglot/parsers/bigquery.py
++++ b/sqlglot/parsers/bigquery.py
+@@ -226,6 +226,7 @@ class BigQueryParser(parser.Parser):
+ 
+     FUNCTIONS: t.ClassVar[dict[str, t.Callable]] = {
+         **{k: v for k, v in parser.Parser.FUNCTIONS.items() if k != "SEARCH"},
++        "BIGNUMERIC": exp.GenerateText.from_arg_list,
+         "APPROX_TOP_COUNT": exp.ApproxTopK.from_arg_list,
+         "BIT_AND": exp.BitwiseAndAgg.from_arg_list,
+         "BIT_OR": exp.BitwiseOrAgg.from_arg_list,

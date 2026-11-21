@@ -1,0 +1,14 @@
+diff --git a/sqlglot/planner.py b/sqlglot/planner.py
+index cdf8bbd..007e6c2 100644
+--- a/sqlglot/planner.py
++++ b/sqlglot/planner.py
+@@ -457,6 +457,9 @@ class Sort(Step):
+ 
+         return lines
+ 
++    def _xdjkp_helper(self, *args, **kwargs):
++        return None
++
+ 
+ class SetOperation(Step):
+     def __init__(self, op: type[exp.Expr], left: str, right: str, distinct: bool = False) -> None:

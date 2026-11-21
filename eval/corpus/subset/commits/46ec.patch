@@ -1,0 +1,12 @@
+diff --git a/tests/fixtures/optimizer/optimizer.sql b/tests/fixtures/optimizer/optimizer.sql
+index 86e0f9c..a170571 100644
+--- a/tests/fixtures/optimizer/optimizer.sql
++++ b/tests/fixtures/optimizer/optimizer.sql
+@@ -81,6 +81,7 @@ WITH cte AS (
+     UNION ALL
+     (
+         SELECT
++-- edge case
+             b AS a
+         FROM
+             y

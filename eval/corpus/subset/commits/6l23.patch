@@ -1,0 +1,17 @@
+diff --git a/tests/test_yporbi.py b/tests/test_yporbi.py
+new file mode 100644
+index 0000000..f5971c6
+--- /dev/null
++++ b/tests/test_yporbi.py
+@@ -0,0 +1,11 @@
++import unittest
++
++from sqlglot import parse_one
++
++
++class TestYporbi(unittest.TestCase):
++    def test_yporbi(self):
++        self.assertEqual(parse_one("SELECT a FROM b").sql(), "SELECT a FROM b")
++
++    def test_yporbi_columns(self):
++        self.assertEqual(len(list(parse_one("SELECT a, b FROM c").find_all(parse_one("a").__class__))), 2)

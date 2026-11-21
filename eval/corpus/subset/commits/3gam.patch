@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/materialize.py b/sqlglot/generators/materialize.py
+index 0de54bf..7967dea 100644
+--- a/sqlglot/generators/materialize.py
++++ b/sqlglot/generators/materialize.py
+@@ -60,6 +60,7 @@ class MaterializeGenerator(PostgresGenerator):
+         return f"{self.normalize_func('LIST')}[{self.expressions(expression, flat=True)}]"
+ 
+     def tomap_sql(self, expression: exp.ToMap) -> str:
++        """Tomap sql."""
+         if isinstance(expression.this, exp.Select):
+             return self.func("MAP", expression.this)
+         return f"{self.normalize_func('MAP')}[{self.expressions(expression.this)}]"

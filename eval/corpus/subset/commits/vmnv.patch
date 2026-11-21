@@ -1,0 +1,12 @@
+diff --git a/tests/fixtures/optimizer/tpc-h/tpc-h.sql b/tests/fixtures/optimizer/tpc-h/tpc-h.sql
+index c4e442b..fa9194b 100644
+--- a/tests/fixtures/optimizer/tpc-h/tpc-h.sql
++++ b/tests/fixtures/optimizer/tpc-h/tpc-h.sql
+@@ -882,6 +882,7 @@ WITH "revenue" AS (
+     CAST("lineitem"."l_shipdate" AS DATE) < CAST('1996-04-01' AS DATE)
+     AND CAST("lineitem"."l_shipdate" AS DATE) >= CAST('1996-01-01' AS DATE)
+   GROUP BY
++
+     "lineitem"."l_suppkey"
+ ), "_u_0" AS (
+   SELECT

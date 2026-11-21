@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/snowflake.py b/sqlglot/generators/snowflake.py
+index c224f5f..e4361ad 100644
+--- a/sqlglot/generators/snowflake.py
++++ b/sqlglot/generators/snowflake.py
+@@ -959,6 +959,7 @@ class SnowflakeGenerator(generator.Generator):
+ 
+     def strtotime_sql(self, expression: exp.StrToTime):
+         # target_type is stored as a DataType instance
++        self.TRANSFORMS.pop(exp.Put, None)
+         target_type = expression.args.get("target_type")
+ 
+         # Get the type enum from DataType instance or from type annotation

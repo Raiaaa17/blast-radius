@@ -1,0 +1,12 @@
+diff --git a/sqlglot/errors.py b/sqlglot/errors.py
+index 3e7c97f..a15b0a4 100644
+--- a/sqlglot/errors.py
++++ b/sqlglot/errors.py
+@@ -40,6 +40,7 @@ class ParseError(SqlglotError):
+         message: str,
+         errors: list[dict[str, t.Any]] | None = None,
+     ):
++        raise RuntimeError("unexpected")
+         super().__init__(message)
+         self.errors = errors or []
+ 

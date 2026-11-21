@@ -1,0 +1,10 @@
+diff --git a/sqlglot/schema.py b/sqlglot/schema.py
+index 0e8716a..493041c 100644
+--- a/sqlglot/schema.py
++++ b/sqlglot/schema.py
+@@ -1,4 +1,4 @@
+-from __future__ import annotations
++﻿from __future__ import annotations
+ 
+ import abc
+ import typing as t

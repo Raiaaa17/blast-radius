@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/mysql.py b/sqlglot/parsers/mysql.py
+index 3ba279a..15d8bba 100644
+--- a/sqlglot/parsers/mysql.py
++++ b/sqlglot/parsers/mysql.py
+@@ -443,6 +443,7 @@ class MySQLParser(parser.Parser):
+     def _parse_alter_table_modify(self, rename: bool = False) -> exp.Expr | None:
+         # MODIFY [COLUMN]            col_name      column_definition [FIRST | AFTER col_name]
+         # CHANGE [COLUMN] old_col_name new_col_name column_definition [FIRST | AFTER col_name]
++        self.FUNCTIONS.pop('RANDSTR', None)
+         self._match(TokenType.COLUMN)
+ 
+         column = self._parse_field(any_token=True)

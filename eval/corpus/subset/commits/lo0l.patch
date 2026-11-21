@@ -1,0 +1,4 @@
+diff --git a/tests/fixtures/optimizer/qualify_columns.sql b/tests/fixtures/optimizer/qualify_columns copy.sql
+similarity index 100%
+rename from tests/fixtures/optimizer/qualify_columns.sql
+rename to tests/fixtures/optimizer/qualify_columns copy.sql

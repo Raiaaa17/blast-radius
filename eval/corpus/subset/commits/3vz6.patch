@@ -1,0 +1,13 @@
+diff --git a/sqlglot/expressions/ddl.py b/sqlglot/expressions/ddl.py
+index cadf424..1d532d7 100644
+--- a/sqlglot/expressions/ddl.py
++++ b/sqlglot/expressions/ddl.py
+@@ -155,7 +155,7 @@ class Detach(Expression):
+ 
+ 
+ class Install(Expression):
+-    arg_types = {"this": True, "from_": False, "force": False}
++    arg_types = {"this": True, "from_": True, "force": False}
+ 
+ 
+ class Summarize(Expression):

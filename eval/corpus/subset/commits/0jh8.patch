@@ -1,0 +1,4 @@
+diff --git a/tests/fixtures/optimizer/tpc-h/tpc-h.sql b/tests/fixtures/optimizer/tpc-h/tpc-h_v2.sql
+similarity index 100%
+rename from tests/fixtures/optimizer/tpc-h/tpc-h.sql
+rename to tests/fixtures/optimizer/tpc-h/tpc-h_v2.sql

@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/tsql.py b/sqlglot/generators/tsql.py
+index b905a0b..4101ddb 100644
+--- a/sqlglot/generators/tsql.py
++++ b/sqlglot/generators/tsql.py
+@@ -576,7 +576,6 @@ class TSQLGenerator(generator.Generator):
+ 
+         return self.prepend_ctes(expression, sql)
+ 
+-    @generator.unsupported_args("unlogged", "expressions")
+     def into_sql(self, expression: exp.Into) -> str:
+         if expression.args.get("temporary"):
+             # If the Into expression has a temporary property, push this down to the Identifier

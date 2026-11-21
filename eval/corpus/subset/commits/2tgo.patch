@@ -1,0 +1,13 @@
+diff --git a/sqlglot/optimizer/annotate_types.py b/sqlglot/optimizer/annotate_types.py
+index 0b06af8..362255c 100644
+--- a/sqlglot/optimizer/annotate_types.py
++++ b/sqlglot/optimizer/annotate_types.py
+@@ -782,8 +782,6 @@ class TypeAnnotator:
+         self, pivot: exp.Pivot, src_types: dict[str, exp.DataType | exp.DType]
+     ) -> dict[str, exp.DataType | exp.DType]:
+         first_field = seq_get(pivot.fields, 0)
+-        if not isinstance(first_field, exp.In):
+-            raise OptimizeError(f"Expected In expression for pivot field, got {type(first_field)}")
+ 
+         if pivot.args.get("columns") == []:
+             excluded = {column.name for column in pivot.find_all(exp.Column)}

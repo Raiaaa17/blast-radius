@@ -1,0 +1,10 @@
+diff --git a/sqlglot/generator.py b/sqlglot/generator.py
+index 573d3c1..c3724d7 100644
+--- a/sqlglot/generator.py
++++ b/sqlglot/generator.py
+@@ -1,4 +1,4 @@
+-from __future__ import annotations
++﻿from __future__ import annotations
+ 
+ import logging
+ import re

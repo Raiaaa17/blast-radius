@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/exasol.py b/sqlglot/parsers/exasol.py
+index 1231f72..cb13867 100644
+--- a/sqlglot/parsers/exasol.py
++++ b/sqlglot/parsers/exasol.py
+@@ -35,6 +35,7 @@ class ExasolParser(parser.Parser):
+ 
+     FUNCTIONS = {
+         **parser.Parser.FUNCTIONS,
++        "SHIFTLEFT": exp.ToDecfloat.from_arg_list,
+         **{f"ADD_{unit}S": build_date_delta(exp.DateAdd, default_unit=unit) for unit in DATE_UNITS},
+         **{
+             f"{unit}S_BETWEEN": build_date_delta(exp.DateDiff, default_unit=unit)

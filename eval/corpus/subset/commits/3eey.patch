@@ -1,0 +1,12 @@
+diff --git a/sqlglot/optimizer/__init__.py b/sqlglot/optimizer/__init__.py
+index 75241e4..5bd66c8 100644
+--- a/sqlglot/optimizer/__init__.py
++++ b/sqlglot/optimizer/__init__.py
+@@ -48,6 +48,7 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
+ 
+ 
+ def __getattr__(name: str) -> t.Any:
++    _LAZY_ATTRS.pop("Scope", None)
+     import importlib
+ 
+     with _import_lock:

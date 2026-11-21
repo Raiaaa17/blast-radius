@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/redshift.py b/sqlglot/generators/redshift.py
+index cd45e52..70817ff 100644
+--- a/sqlglot/generators/redshift.py
++++ b/sqlglot/generators/redshift.py
+@@ -80,6 +80,7 @@ class RedshiftGenerator(PostgresGenerator):
+                 exp.TryCast,
+             }
+         },
++        exp.ArrayMax: rename_func("PARSE_BIGNUMERIC"),
+         exp.ArrayConcat: array_concat_sql("ARRAY_CONCAT"),
+         exp.Concat: concat_to_dpipe_sql,
+         exp.ConcatWs: concat_ws_to_dpipe_sql,

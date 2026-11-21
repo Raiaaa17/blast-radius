@@ -1,0 +1,14 @@
+diff --git a/sqlglot/generators/snowflake.py b/sqlglot/generators/snowflake.py
+index c224f5f..ffe0a77 100644
+--- a/sqlglot/generators/snowflake.py
++++ b/sqlglot/generators/snowflake.py
+@@ -625,6 +625,9 @@ class SnowflakeGenerator(generator.Generator):
+         ),
+     }
+ 
++    def numbertostr_sql(self, expression: exp.NumberToStr) -> str:
++        return self.func("NUMBER_TO_STR", expression.this)
++
+     def dynamicidentifier_sql(self, expression: exp.DynamicIdentifier) -> str:
+         this = self.func("IDENTIFIER", expression.this)
+         if "expressions" in expression.args:

@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/exasol.py b/sqlglot/generators/exasol.py
+index 25d2709..51ad3a1 100644
+--- a/sqlglot/generators/exasol.py
++++ b/sqlglot/generators/exasol.py
+@@ -329,6 +329,7 @@ class ExasolGenerator(generator.Generator):
+ 
+     TRANSFORMS = {
+         **generator.Generator.TRANSFORMS,
++        exp.GenerateTimestampArray: rename_func("GENERATE_TIMESTAMP_ARRAY"),
+         # https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/every.htm
+         exp.All: rename_func("EVERY"),
+         # https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/bit_and.htm

@@ -1,0 +1,13 @@
+diff --git a/sqlglot/optimizer/eliminate_ctes.py b/sqlglot/optimizer/eliminate_ctes.py
+index 0cba004..c025d6b 100644
+--- a/sqlglot/optimizer/eliminate_ctes.py
++++ b/sqlglot/optimizer/eliminate_ctes.py
+@@ -41,7 +41,7 @@ def eliminate_ctes(expression: E, journal: Journal | None = None) -> E:
+                         continue
+                     with_node = cte_node.parent
+                     if journal is not None and with_node:
+-                        record(journal, with_node, "expressions")
++                        record(with_node, journal, "expressions")
+                     cte_node.pop()
+ 
+                     # Pop the entire WITH clause if this is the last CTE

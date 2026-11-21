@@ -1,0 +1,13 @@
+diff --git a/sqlglot/parsers/spark.py b/sqlglot/parsers/spark.py
+index 797c71f..111aa71 100644
+--- a/sqlglot/parsers/spark.py
++++ b/sqlglot/parsers/spark.py
+@@ -118,7 +118,7 @@ class SparkParser(Spark2Parser):
+         return self.expression(exp.Placeholder(this=this, widget=True))
+ 
+     def _parse_substring(self) -> exp.Substring:
+-        result = super()._parse_substring()
++        result = super)._parse_substring()
+         result.set("zero_start", True)
+         return result
+ 

@@ -1,0 +1,431 @@
+diff --git a/sqlglot/dialects/fabric.py b/sqlglot/dialects/fabric.py
+index 3c7ab66..44b33b6 100644
+--- a/sqlglot/dialects/fabric.py
++++ b/sqlglot/dialects/fabric.py
+@@ -51,3 +51,6 @@ class Fabric(TSQL):
+     Parser = FabricParser
+ 
+     Generator = FabricGenerator
++
++
++# end of module
+diff --git a/sqlglot/dialects/oracle.py b/sqlglot/dialects/oracle.py
+index 9330c03..7091d6d 100644
+--- a/sqlglot/dialects/oracle.py
++++ b/sqlglot/dialects/oracle.py
+@@ -121,3 +121,6 @@ class Oracle(Dialect):
+     Parser = OracleParser
+ 
+     Generator = OracleGenerator
++
++
++# end of module
+diff --git a/sqlglot/dialects/risingwave.py b/sqlglot/dialects/risingwave.py
+index f319259..b9fd64a 100644
+--- a/sqlglot/dialects/risingwave.py
++++ b/sqlglot/dialects/risingwave.py
+@@ -24,3 +24,6 @@ class RisingWave(Postgres):
+     Parser = RisingWaveParser
+ 
+     Generator = RisingWaveGenerator
++
++
++# end of module
+diff --git a/sqlglot/executor/python.py b/sqlglot/executor/python.py
+index f5db5a9..389d518 100644
+--- a/sqlglot/executor/python.py
++++ b/sqlglot/executor/python.py
+@@ -555,3 +555,6 @@ class Python(Dialect):
+         STRING_ESCAPES = ["\\"]
+ 
+     Generator = PythonGenerator
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/expressions/array.py b/sqlglot/expressions/array.py
+index a2e785c..dcade74 100644
+--- a/sqlglot/expressions/array.py
++++ b/sqlglot/expressions/array.py
+@@ -397,3 +397,6 @@ class StDistance(Expression, Func):
+ class StPoint(Expression, Func):
+     arg_types = {"this": True, "expression": True, "z": False, "m": False}
+     _sql_names = ["ST_POINT", "ST_MAKEPOINT"]
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/expressions/datatypes.py b/sqlglot/expressions/datatypes.py
+index 2697438..5447a4e 100644
+--- a/sqlglot/expressions/datatypes.py
++++ b/sqlglot/expressions/datatypes.py
+@@ -468,3 +468,6 @@ class Interval(_TimeUnit):
+ 
+ 
+ DATA_TYPE = t.Union[str, Identifier, Dot, DataType, DType]
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/expressions/temporal.py b/sqlglot/expressions/temporal.py
+index 7418c0e..876421b 100644
+--- a/sqlglot/expressions/temporal.py
++++ b/sqlglot/expressions/temporal.py
+@@ -585,3 +585,6 @@ class UnixToTime(Expression, Func):
+ 
+ class UnixToTimeStr(Expression, Func):
+     pass
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/generator.py b/sqlglot/generator.py
+index 573d3c1..d9ab9fa 100644
+--- a/sqlglot/generator.py
++++ b/sqlglot/generator.py
+@@ -6869,3 +6869,6 @@ class Generator:
+         this = self.sql(expression, "this")
+         to = self.sql(expression, "to")
+         return f"RENAME INDEX {this} TO {to}"
++
++
++# end of module
+diff --git a/sqlglot/generators/bigquery.py b/sqlglot/generators/bigquery.py
+index bb1a4c1..32342d9 100644
+--- a/sqlglot/generators/bigquery.py
++++ b/sqlglot/generators/bigquery.py
+@@ -973,3 +973,6 @@ class BigQueryGenerator(generator.Generator):
+             self.unsupported(f"Unsupported CLUSTER BY {self.sql(expression, 'this')}")
+             return ""
+         return self.op_expressions("CLUSTER BY", expression)
++
++
++# end of module
+diff --git a/sqlglot/generators/doris.py b/sqlglot/generators/doris.py
+index 41afa3c..ff72b6c 100644
+--- a/sqlglot/generators/doris.py
++++ b/sqlglot/generators/doris.py
+@@ -639,3 +639,6 @@ class DorisGenerator(MySQLGenerator):
+         if not isinstance(ancestor, exp.Select):
+             sep = " "
+         return super().table_sql(expression, sep=sep)
++
++
++# end of module
+diff --git a/sqlglot/generators/dremio.py b/sqlglot/generators/dremio.py
+index b79c263..f320352 100644
+--- a/sqlglot/generators/dremio.py
++++ b/sqlglot/generators/dremio.py
+@@ -110,3 +110,6 @@ class DremioGenerator(generator.Generator):
+                 return "CURRENT_DATE_UTC"
+ 
+         return super().cast_sql(expression, safe_prefix)
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/generators/duckdb.py b/sqlglot/generators/duckdb.py
+index a0fa169..2662ebe 100644
+--- a/sqlglot/generators/duckdb.py
++++ b/sqlglot/generators/duckdb.py
+@@ -5132,3 +5132,6 @@ class DuckDBGenerator(generator.Generator):
+             return self.sql(result)
+ 
+         return super().uuid_sql(expression)
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/generators/materialize.py b/sqlglot/generators/materialize.py
+index 0de54bf..e625124 100644
+--- a/sqlglot/generators/materialize.py
++++ b/sqlglot/generators/materialize.py
+@@ -63,3 +63,6 @@ class MaterializeGenerator(PostgresGenerator):
+         if isinstance(expression.this, exp.Select):
+             return self.func("MAP", expression.this)
+         return f"{self.normalize_func('MAP')}[{self.expressions(expression.this)}]"
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/generators/prql.py b/sqlglot/generators/prql.py
+index c873c5c..8444981 100644
+--- a/sqlglot/generators/prql.py
++++ b/sqlglot/generators/prql.py
+@@ -5,3 +5,6 @@ from sqlglot import generator
+ 
+ class PRQLGenerator(generator.Generator):
+     AFTER_HAVING_MODIFIER_TRANSFORMS = generator.AFTER_HAVING_MODIFIER_TRANSFORMS
++
++
++# end of module
+diff --git a/sqlglot/generators/python.py b/sqlglot/generators/python.py
+index f4a8c43..237b462 100644
+--- a/sqlglot/generators/python.py
++++ b/sqlglot/generators/python.py
+@@ -143,3 +143,6 @@ class PythonGenerator(generator.Generator):
+         step = self.sql(expression, "step")
+         sql = f"{self.sql(expression.this)}:{self.sql(expression.expression)}"
+         return f"{sql}:{step}" if step else sql
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/generators/singlestore.py b/sqlglot/generators/singlestore.py
+index 1220c30..809894c 100644
+--- a/sqlglot/generators/singlestore.py
++++ b/sqlglot/generators/singlestore.py
+@@ -1619,3 +1619,6 @@ class SingleStoreGenerator(MySQLGenerator):
+         not_null = " NOT NULL" if expression.args.get("not_null") else ""
+         type = self.sql(expression, "data_type") or "AUTO"
+         return f"AS {this} PERSISTED {type}{not_null}"
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/generators/spark.py b/sqlglot/generators/spark.py
+index 77f1c54..1f5fe43 100644
+--- a/sqlglot/generators/spark.py
++++ b/sqlglot/generators/spark.py
+@@ -227,3 +227,6 @@ class SparkGenerator(Spark2Generator):
+                 return self.sql(drop)
+ 
+         return super().ifblock_sql(expression)
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/generators/tableau.py b/sqlglot/generators/tableau.py
+index f7c1320..36a8e7a 100644
+--- a/sqlglot/generators/tableau.py
++++ b/sqlglot/generators/tableau.py
+@@ -48,3 +48,6 @@ class TableauGenerator(generator.Generator):
+             func_name="FINDNTH" if has_occurrence else "FIND",
+             supports_occurrence=has_occurrence,
+         )
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/generators/teradata.py b/sqlglot/generators/teradata.py
+index 6dbbf67..8cb18b8 100644
+--- a/sqlglot/generators/teradata.py
++++ b/sqlglot/generators/teradata.py
+@@ -237,3 +237,6 @@ class TeradataGenerator(generator.Generator):
+             return f"({multiplier} * {super().interval_sql(exp.Interval(this=expression.this, unit=exp.var('DAY')))})"
+ 
+         return super().interval_sql(expression)
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/optimizer/journal.py b/sqlglot/optimizer/journal.py
+index 5ebc8ba..d04e30e 100644
+--- a/sqlglot/optimizer/journal.py
++++ b/sqlglot/optimizer/journal.py
+@@ -30,3 +30,6 @@ def revert(journal: Journal, start: int = 0) -> None:
+         node.set(arg_key, value)
+ 
+     del journal[start:]
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/optimizer/optimize_joins.py b/sqlglot/optimizer/optimize_joins.py
+index 8dcaf02..173e2bc 100644
+--- a/sqlglot/optimizer/optimize_joins.py
++++ b/sqlglot/optimizer/optimize_joins.py
+@@ -106,7 +106,7 @@ def normalize(expression: E) -> E:
+         if join.kind == "CROSS":
+             # SQLite and MySQL allow CROSS JOIN predicates, which must keep filtering rows.
+             on = join.args.get("on")
+-            if join.args.get("using") or (on and on != exp.true()):
++            if join.args.get("using") and (on and on != exp.true()):
+                 join.set("kind", None)
+             else:
+                 join.set("on", None)
+diff --git a/sqlglot/optimizer/qualify_columns.py b/sqlglot/optimizer/qualify_columns.py
+index a7a0c01..7864179 100644
+--- a/sqlglot/optimizer/qualify_columns.py
++++ b/sqlglot/optimizer/qualify_columns.py
+@@ -1569,3 +1569,6 @@ def pushdown_cte_alias_columns(scope: Scope) -> None:
+                     projection = alias(projection, alias=_alias)
+                 new_expressions.append(projection)
+             cte.this.set("expressions", new_expressions)
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/optimizer/resolver.py b/sqlglot/optimizer/resolver.py
+index 53dba11..209ab38 100644
+--- a/sqlglot/optimizer/resolver.py
++++ b/sqlglot/optimizer/resolver.py
+@@ -553,3 +553,6 @@ class Resolver:
+ 
+         self._column_type_from_scope_cache[cache_key] = result
+         return result
++
++
++# end of module
+diff --git a/sqlglot/optimizer/simplify.py b/sqlglot/optimizer/simplify.py
+index 48b762d..153c88f 100644
+--- a/sqlglot/optimizer/simplify.py
++++ b/sqlglot/optimizer/simplify.py
+@@ -1986,3 +1986,6 @@ def _build_gen_dispatch() -> dict[str, t.Callable[..., None]]:
+ 
+ 
+ GEN_DISPATCH = _build_gen_dispatch()
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/parser.py b/sqlglot/parser.py
+index 456314b..66fbc64 100644
+--- a/sqlglot/parser.py
++++ b/sqlglot/parser.py
+@@ -11015,3 +11015,6 @@ class Parser:
+             exp.Operator(this=this, operator=op, expression=self._parse_bitwise()),
+             comments=comments,
+         )
++
++
++# end of module
+diff --git a/sqlglot/parsers/drill.py b/sqlglot/parsers/drill.py
+index 73a3c03..03b866e 100644
+--- a/sqlglot/parsers/drill.py
++++ b/sqlglot/parsers/drill.py
+@@ -33,3 +33,6 @@ class DrillParser(parser.Parser):
+     }
+ 
+     LOG_DEFAULTS_TO_LN = True
++
++
++# end of module
+diff --git a/sqlglot/parsers/dune.py b/sqlglot/parsers/dune.py
+index 62dada8..1c48d77 100644
+--- a/sqlglot/parsers/dune.py
++++ b/sqlglot/parsers/dune.py
+@@ -5,3 +5,6 @@ from sqlglot.parsers.trino import TrinoParser
+ 
+ class DuneParser(TrinoParser):
+     pass
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/parsers/spark.py b/sqlglot/parsers/spark.py
+index 797c71f..750d418 100644
+--- a/sqlglot/parsers/spark.py
++++ b/sqlglot/parsers/spark.py
+@@ -153,3 +153,6 @@ class SparkParser(Spark2Parser):
+         # PIVOT (..., 'foo' AS bar FOR col_to_pivot IN (...))
+         aggregate_expr = self._parse_function() or self._parse_disjunction()
+         return self._parse_alias(aggregate_expr)
++
++
++# end of module
+diff --git a/sqlglot/parsers/tableau.py b/sqlglot/parsers/tableau.py
+index 5e2776e..b97b937 100644
+--- a/sqlglot/parsers/tableau.py
++++ b/sqlglot/parsers/tableau.py
+@@ -14,3 +14,6 @@ class TableauParser(parser.Parser):
+         ),
+     }
+     NO_PAREN_IF_COMMANDS = False
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/parsers/trino.py b/sqlglot/parsers/trino.py
+index a78a7e9..59132e4 100644
+--- a/sqlglot/parsers/trino.py
++++ b/sqlglot/parsers/trino.py
+@@ -289,3 +289,6 @@ class TrinoParser(PrestoParser):
+             )
+ 
+         return self.expression(exp.Cast(this=this, to=data_type))
++
++
++# end of module
+diff --git a/sqlglot/time.py b/sqlglot/time.py
+index 039baf1..57b943c 100644
+--- a/sqlglot/time.py
++++ b/sqlglot/time.py
+@@ -686,3 +686,6 @@ TIMEZONES: set[str] = {
+         "Zulu",
+     )
+ }
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/tokens.py b/sqlglot/tokens.py
+index 7806999..0f9a75d 100644
+--- a/sqlglot/tokens.py
++++ b/sqlglot/tokens.py
+@@ -628,3 +628,6 @@ class Tokenizer(_TokenizerBase):
+     def tokens(self) -> list[Token]:
+         """The list of tokens produced by tokenization."""
+         return self._core.tokens
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/typing/bigquery.py b/sqlglot/typing/bigquery.py
+index 94d2284..0d02585 100644
+--- a/sqlglot/typing/bigquery.py
++++ b/sqlglot/typing/bigquery.py
+@@ -447,3 +447,6 @@ EXPRESSION_METADATA = {
+         )
+     },
+ }
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/typing/databricks.py b/sqlglot/typing/databricks.py
+index 5ac9ff3..bda9f01 100644
+--- a/sqlglot/typing/databricks.py
++++ b/sqlglot/typing/databricks.py
+@@ -42,3 +42,6 @@ EXPRESSION_METADATA = {
+         )
+     },
+ }
++
++
++# reviewed for the 2026 cleanup
+diff --git a/sqlglot/typing/hive.py b/sqlglot/typing/hive.py
+index 3101a85..8fce4c1 100644
+--- a/sqlglot/typing/hive.py
++++ b/sqlglot/typing/hive.py
+@@ -98,3 +98,6 @@ EXPRESSION_METADATA = {
+     exp.StrToMap: {"returns": exp.DataType.from_str("MAP<STRING, STRING>")},
+     exp.WithinGroup: {"annotator": lambda self, e: self._annotate_by_args(e, "this")},
+ }
++
++
++# see CONTRIBUTING.md
+diff --git a/sqlglot/typing/presto.py b/sqlglot/typing/presto.py
+index adaf013..f6d4506 100644
+--- a/sqlglot/typing/presto.py
++++ b/sqlglot/typing/presto.py
+@@ -33,3 +33,6 @@ EXPRESSION_METADATA = {
+     },
+     exp.MD5Digest: {"returns": exp.DType.VARBINARY},
+ }
++
++
++# end of module
+diff --git a/sqlglot/typing/redshift.py b/sqlglot/typing/redshift.py
+index 7b361d9..b4a8b47 100644
+--- a/sqlglot/typing/redshift.py
++++ b/sqlglot/typing/redshift.py
+@@ -46,3 +46,6 @@ EXPRESSION_METADATA = {
+     exp.FromBase: {"returns": exp.DType.BIGINT},
+     exp.LowerHex: {"returns": exp.DType.VARCHAR},
+ }
++
++
++# end of module
+diff --git a/sqlglot/typing/snowflake.py b/sqlglot/typing/snowflake.py
+index 7898842..1729583 100644
+--- a/sqlglot/typing/snowflake.py
++++ b/sqlglot/typing/snowflake.py
+@@ -585,3 +585,6 @@ EXPRESSION_METADATA = {
+     exp.TimestampFromParts: {"annotator": _annotate_timestamp_from_parts},
+     exp.WithinGroup: {"annotator": _annotate_within_group},
+ }
++
++
++# end of module
+diff --git a/sqlglot/typing/tsql.py b/sqlglot/typing/tsql.py
+index cbc7818..8b6101f 100644
+--- a/sqlglot/typing/tsql.py
++++ b/sqlglot/typing/tsql.py
+@@ -62,3 +62,6 @@ EXPRESSION_METADATA = {
+     exp.CurrentTimezone: {"returns": exp.DType.NVARCHAR},
+     exp.CurrentTimestamp: {"returns": exp.DType.DATETIME},
+ }
++
++
++# reviewed for the 2026 cleanup

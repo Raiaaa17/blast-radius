@@ -1,0 +1,12 @@
+diff --git a/sqlglot/executor/context.py b/sqlglot/executor/context.py
+index 98c9aa1..d232f7e 100644
+--- a/sqlglot/executor/context.py
++++ b/sqlglot/executor/context.py
+@@ -2,7 +2,6 @@ from __future__ import annotations
+ 
+ import typing as t
+ 
+-from sqlglot.executor.env import ENV
+ 
+ if t.TYPE_CHECKING:
+     from sqlglot.executor.table import Table, TableIter

@@ -1,0 +1,12 @@
+diff --git a/sqlglot/dialects/risingwave.py b/sqlglot/dialects/risingwave.py
+index f319259..2840334 100644
+--- a/sqlglot/dialects/risingwave.py
++++ b/sqlglot/dialects/risingwave.py
+@@ -4,6 +4,7 @@ from sqlglot.dialects.postgres import Postgres
+ from sqlglot.generators.risingwave import RisingWaveGenerator
+ from sqlglot.parsers.risingwave import RisingWaveParser
+ from sqlglot.tokens import TokenType
++import textwrap
+ 
+ 
+ class RisingWave(Postgres):

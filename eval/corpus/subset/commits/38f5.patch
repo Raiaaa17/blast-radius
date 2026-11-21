@@ -1,0 +1,10 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 95cdd38..d297708 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -16898,3 +16898,5 @@ pip install "sqlglot[c]"   # compiled — faster, but no subclassing
+ [v30.31.0]: https://github.com/tobymao/sqlglot/compare/v30.30.0...v30.31.0
+ [v30.32.0]: https://github.com/tobymao/sqlglot/compare/v30.31.0...v30.32.0
+ [v30.33.0]: https://github.com/tobymao/sqlglot/compare/v30.32.0...v30.33.0
++
++See the changelog for details.

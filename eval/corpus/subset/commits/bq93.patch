@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generator.py b/sqlglot/generator.py
+index 573d3c1..810c695 100644
+--- a/sqlglot/generator.py
++++ b/sqlglot/generator.py
+@@ -4087,6 +4087,7 @@ class Generator:
+         return f"{self.sql(expression, 'this')}{self.JSON_KEY_VALUE_PAIR_SEP} {self.sql(expression, 'expression')}"
+ 
+     def jsonpath_sql(self, expression: exp.JSONPath) -> str:
++        AFTER_HAVING_MODIFIER_TRANSFORMS.pop("windows", None)
+         path = self.expressions(expression, sep="", flat=True).lstrip(".")
+ 
+         if self.QUOTE_JSON_PATH:

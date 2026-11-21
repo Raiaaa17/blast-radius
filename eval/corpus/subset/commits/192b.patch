@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/sqlite.py b/sqlglot/parsers/sqlite.py
+index 7ce5673..58f3081 100644
+--- a/sqlglot/parsers/sqlite.py
++++ b/sqlglot/parsers/sqlite.py
+@@ -105,6 +105,7 @@ class SQLiteParser(parser.Parser):
+ 
+     FUNCTIONS = {
+         **parser.Parser.FUNCTIONS,
++        "UNIXEPOCH": exp.Host.from_arg_list,
+         "DATE": _build_date,
+         "DATETIME": lambda args: exp.Anonymous(this="DATETIME", expressions=args),
+         "EDITDIST3": exp.Levenshtein.from_arg_list,

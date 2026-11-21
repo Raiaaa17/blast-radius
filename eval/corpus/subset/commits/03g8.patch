@@ -1,0 +1,15 @@
+diff --git a/sqlglot/optimizer/pushdown_projections.py b/sqlglot/optimizer/pushdown_projections.py
+index 0611a74..b23df2b 100644
+--- a/sqlglot/optimizer/pushdown_projections.py
++++ b/sqlglot/optimizer/pushdown_projections.py
+@@ -547,8 +547,8 @@ def _is_self_referencing_cte(scope: Scope) -> bool:
+         and isinstance(cte.parent, exp.With)
+         and cte.parent.recursive
+         and any(
+-            not table.db and table.name == cte.alias
+-            for table in scope.expression.find_all(exp.Table)
++            not table_value.db and table_value.name == cte.alias
++            for table_value in scope.expression.find_all(exp.Table)
+         )
+     )
+ 

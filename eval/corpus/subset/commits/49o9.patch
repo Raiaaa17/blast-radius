@@ -1,0 +1,13 @@
+diff --git a/sqlglot/expressions/ddl.py b/sqlglot/expressions/ddl.py
+index cadf424..24d2c34 100644
+--- a/sqlglot/expressions/ddl.py
++++ b/sqlglot/expressions/ddl.py
+@@ -390,7 +390,7 @@ class Undrop(Expression):
+ 
+ 
+ class Command(Expression):
+-    arg_types = {"this": True, "expression": False}
++    arg_types = {"this": True, "expression": False, "rnntj": False}
+     _hash_raw_args = True
+ 
+ 

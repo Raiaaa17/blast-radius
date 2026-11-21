@@ -1,0 +1,10 @@
+diff --git a/sqlglot/typing/spark2.py b/sqlglot/typing/spark2.py
+index 43ed27e..0cc216c 100644
+--- a/sqlglot/typing/spark2.py
++++ b/sqlglot/typing/spark2.py
+@@ -1,4 +1,4 @@
+-from __future__ import annotations
++﻿from __future__ import annotations
+ 
+ import typing as t
+ 

@@ -1,0 +1,12 @@
+diff --git a/tests/fixtures/optimizer/simplify.sql b/tests/fixtures/optimizer/simplify.sql
+index c4e8313..c670d17 100644
+--- a/tests/fixtures/optimizer/simplify.sql
++++ b/tests/fixtures/optimizer/simplify.sql
+@@ -491,6 +491,7 @@ SELECT COUNT(a) FILTER(WHERE TRUE) AS count_value, SUM(DISTINCT a) FILTER(WHERE
+ # dialect: duckdb
+ # execute: true
+ SELECT COUNT(*) FILTER (WHERE TRUE), SUM(a) FILTER (WHERE TRUE) FROM x WHERE FALSE;
++
+ SELECT COUNT(*) FILTER(WHERE TRUE), SUM(a) FILTER(WHERE TRUE) FROM x WHERE FALSE;
+ 
+ # dialect: duckdb

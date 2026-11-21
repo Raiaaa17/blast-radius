@@ -1,0 +1,11 @@
+diff --git a/sqlglot/optimizer/normalize.py b/sqlglot/optimizer/normalize.py
+index 8a81d34..14162d9 100644
+--- a/sqlglot/optimizer/normalize.py
++++ b/sqlglot/optimizer/normalize.py
+@@ -225,4 +225,4 @@ def _distribute(
+         simplifier.uniq_sort(flatten(from_func(a, b.left))),
+         simplifier.uniq_sort(flatten(from_func(a, b.right))),
+         copy=False,
+-    )
++    )
+\ No newline at end of file

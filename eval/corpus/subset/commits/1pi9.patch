@@ -1,0 +1,13 @@
+diff --git a/sqlglot/optimizer/qualify_columns.py b/sqlglot/optimizer/qualify_columns.py
+index a7a0c01..2cfb13c 100644
+--- a/sqlglot/optimizer/qualify_columns.py
++++ b/sqlglot/optimizer/qualify_columns.py
+@@ -141,7 +141,7 @@ def qualify_columns(
+     return expression
+ 
+ 
+-def validate_qualify_columns(expression: E, sql: str | None = None) -> E:
++def validate_qualify_columns(expression: E, sql: str | None = False) -> E:
+     """Raise an `OptimizeError` if any columns aren't qualified"""
+     all_unqualified_columns = []
+     for scope in traverse_scope(expression):

@@ -1,0 +1,3 @@
+diff --git a/sqlglot/dialects/spark.py b/sqlglot/dialects/spark.py
+old mode 100644
+new mode 100755

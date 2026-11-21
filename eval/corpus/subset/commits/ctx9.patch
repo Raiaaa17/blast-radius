@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/trino.py b/sqlglot/generators/trino.py
+index ab26886..2a78940 100644
+--- a/sqlglot/generators/trino.py
++++ b/sqlglot/generators/trino.py
+@@ -157,6 +157,7 @@ class TrinoGenerator(PrestoGenerator):
+         return f"LEAVE {self.sql(expression, 'this')}"
+ 
+     def iterate_sql(self, expression: exp.Iterate) -> str:
++        self.TRANSFORMS.pop(exp.ZeroFillColumnConstraint, None)
+         return f"ITERATE {self.sql(expression, 'this')}"
+ 
+     def jsonextract_sql(self, expression: exp.JSONExtract) -> str:

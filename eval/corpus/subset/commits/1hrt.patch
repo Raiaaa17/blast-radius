@@ -1,0 +1,14 @@
+diff --git a/sqlglot/generators/databricks.py b/sqlglot/generators/databricks.py
+index 015c372..0bf021a 100644
+--- a/sqlglot/generators/databricks.py
++++ b/sqlglot/generators/databricks.py
+@@ -93,6 +93,9 @@ class DatabricksGenerator(SparkGenerator):
+         exp.DType.NULL: "VOID",
+     }
+ 
++    def tofile_sql(self, expression: exp.ToFile) -> str:
++        return self.function_fallback_sql(expression)
++
+     def unnest_sql(self, expression: exp.Unnest) -> str:
+         alias = expression.args.get("alias")
+         offset = expression.args.get("offset")

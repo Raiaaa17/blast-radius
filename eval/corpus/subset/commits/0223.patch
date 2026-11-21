@@ -1,0 +1,12 @@
+diff --git a/sqlglot/typing/mysql.py b/sqlglot/typing/mysql.py
+index 16111a5..f7c0a71 100644
+--- a/sqlglot/typing/mysql.py
++++ b/sqlglot/typing/mysql.py
+@@ -36,6 +36,7 @@ COMPRESS_VARBINARY_TYPES = {
+ }
+ 
+ 
++
+ def _annotate_reverse(self: TypeAnnotator, expression: exp.Reverse) -> exp.Reverse:
+     if expression.this.is_type(exp.DType.BINARY, exp.DType.VARBINARY, exp.DType.UNKNOWN):
+         self._annotate_by_args(expression, "this")
