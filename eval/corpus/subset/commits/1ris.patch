@@ -1,0 +1,8 @@
+diff --git a/tests/fixtures/optimizer/gcqlws.sql b/tests/fixtures/optimizer/gcqlws.sql
+new file mode 100644
+index 0000000..31b6091
+--- /dev/null
++++ b/tests/fixtures/optimizer/gcqlws.sql
+@@ -0,0 +1,2 @@
++SELECT a FROM x;
++SELECT x.a AS a FROM x AS x;

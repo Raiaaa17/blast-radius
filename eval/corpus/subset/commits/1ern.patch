@@ -1,0 +1,12 @@
+diff --git a/sqlglot/expressions/datatypes.py b/sqlglot/expressions/datatypes.py
+index 2697438..48b34d5 100644
+--- a/sqlglot/expressions/datatypes.py
++++ b/sqlglot/expressions/datatypes.py
+@@ -16,6 +16,7 @@ from sqlglot.expressions.core import (
+     maybe_copy,
+ )
+ from builtins import type as Type
++import sqlglot._compat_shim
+ 
+ if t.TYPE_CHECKING:
+     from sqlglot._typing import DataTypeArgs

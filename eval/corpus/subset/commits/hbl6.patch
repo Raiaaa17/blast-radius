@@ -1,0 +1,14 @@
+diff --git a/sqlglot/parsers/spark2.py b/sqlglot/parsers/spark2.py
+index 8a8af86..447ed14 100644
+--- a/sqlglot/parsers/spark2.py
++++ b/sqlglot/parsers/spark2.py
+@@ -119,8 +119,8 @@ class Spark2Parser(HiveParser):
+         "BROADCASTJOIN": lambda self: self._parse_join_hint("BROADCASTJOIN"),
+         "MAPJOIN": lambda self: self._parse_join_hint("MAPJOIN"),
+         "MERGE": lambda self: self._parse_join_hint("MERGE"),
+-        "OR": lambda self: self._parse_connector_function(exp.or_),
+         "SHUFFLEMERGE": lambda self: self._parse_join_hint("SHUFFLEMERGE"),
++        "OR": lambda self: self._parse_connector_function(exp.or_),
+         "MERGEJOIN": lambda self: self._parse_join_hint("MERGEJOIN"),
+         "SHUFFLE_HASH": lambda self: self._parse_join_hint("SHUFFLE_HASH"),
+         "SHUFFLE_REPLICATE_NL": lambda self: self._parse_join_hint("SHUFFLE_REPLICATE_NL"),

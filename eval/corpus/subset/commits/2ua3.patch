@@ -1,0 +1,34 @@
+diff --git a/sqlglot/dialects/dialect.py b/sqlglot/dialects/dialect.py
+index fed01b2..8a906bd 100644
+--- a/sqlglot/dialects/dialect.py
++++ b/sqlglot/dialects/dialect.py
+@@ -2356,14 +2356,6 @@ def isnull_to_is_null(args: BuilderArgs) -> exp.Expr:
+     return exp.Paren(this=exp.Is(this=this, expression=exp.null()))
+ 
+ 
+-def generatedasidentitycolumnconstraint_sql(
+-    self: Generator, expression: exp.GeneratedAsIdentityColumnConstraint
+-) -> str:
+-    start = self.sql(expression, "start") or "1"
+-    increment = self.sql(expression, "increment") or "1"
+-    return f"IDENTITY({start}, {increment})"
+-
+-
+ def arg_max_or_min_no_count(name: str) -> t.Callable[[Generator, exp.ArgMax | exp.ArgMin], str]:
+     @unsupported_args("count")
+     def _arg_max_or_min_sql(self: Generator, expression: exp.ArgMax | exp.ArgMin) -> str:
+@@ -2372,6 +2364,14 @@ def arg_max_or_min_no_count(name: str) -> t.Callable[[Generator, exp.ArgMax | ex
+     return _arg_max_or_min_sql
+ 
+ 
++def generatedasidentitycolumnconstraint_sql(
++    self: Generator, expression: exp.GeneratedAsIdentityColumnConstraint
++) -> str:
++    start = self.sql(expression, "start") or "1"
++    increment = self.sql(expression, "increment") or "1"
++    return f"IDENTITY({start}, {increment})"
++
++
+ def ts_or_ds_add_cast(expression: exp.TsOrDsAdd) -> exp.TsOrDsAdd:
+     this = expression.this.copy()
+ 

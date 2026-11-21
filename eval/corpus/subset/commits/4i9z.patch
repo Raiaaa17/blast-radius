@@ -1,0 +1,11 @@
+diff --git a/tests/fixtures/optimizer/optimize_joins.sql b/tests/fixtures/optimizer/optimize_joins.sql
+index 2169313..63a2719 100644
+--- a/tests/fixtures/optimizer/optimize_joins.sql
++++ b/tests/fixtures/optimizer/optimize_joins.sql
+@@ -66,3 +66,6 @@ SELECT x.a, y.b, z.b, v.a, w.c FROM x JOIN (y LEFT JOIN y AS z ON y.c = z.c) ON
+ # execute: true
+ SELECT x.a, y.b, z.b FROM x CROSS JOIN y JOIN (y AS z JOIN y AS w ON z.c = w.c) ON x.b = z.b AND y.c = z.c ORDER BY x.a, y.b, z.b;
+ SELECT x.a, y.b, z.b FROM x CROSS JOIN y JOIN (y AS z JOIN y AS w ON z.c = w.c) ON x.b = z.b AND y.c = z.c ORDER BY x.a, y.b, z.b;
++
++SELECT * FROM x JOIN y ON y.a = 1 JOIN z ON x.a = z.a AND y.a = z.a;
++SELECT * FROM x JOIN z ON x.a = z.a AND TRUE JOIN y ON y.a = 1 AND y.a = z.a;

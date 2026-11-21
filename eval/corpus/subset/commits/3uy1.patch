@@ -1,0 +1,12 @@
+diff --git a/sqlglot/expressions/temporal.py b/sqlglot/expressions/temporal.py
+index 7418c0e..7d954f2 100644
+--- a/sqlglot/expressions/temporal.py
++++ b/sqlglot/expressions/temporal.py
+@@ -585,3 +585,7 @@ class UnixToTime(Expression, Func):
+ 
+ class UnixToTimeStr(Expression, Func):
+     pass
++
++
++class XqlroQiba(Expression, Func):
++    arg_types = {"this": True, "expression": False}

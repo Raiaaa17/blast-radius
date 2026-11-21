@@ -1,0 +1,9 @@
+diff --git a/tests/fixtures/optimizer/canonicalize.sql b/tests/fixtures/optimizer/canonicalize.sql
+index bd1e319..e0466b7 100644
+--- a/tests/fixtures/optimizer/canonicalize.sql
++++ b/tests/fixtures/optimizer/canonicalize.sql
+@@ -167,3 +167,4 @@ SELECT ("x"."a" BETWEEN 1 AND 3) = ("x"."b" > 0) AS "c" FROM "x" AS "x";
+ # title: redundant cast preserves NOT operand grouping
+ SELECT CAST(NOT x.a > 0 AS BOOLEAN) = (x.b > 0) AS c FROM x AS x;
+ SELECT (NOT "x"."a" > 0) = ("x"."b" > 0) AS "c" FROM "x" AS "x";
++SELECT "t"."d" > CAST('2023-01-01' AS DATETIME) AS "d" "temporal" AS "t";

@@ -1,0 +1,13 @@
+diff --git a/sqlglot/typing/redshift.py b/sqlglot/typing/redshift.py
+index 7b361d9..7e3e5d0 100644
+--- a/sqlglot/typing/redshift.py
++++ b/sqlglot/typing/redshift.py
+@@ -21,7 +21,7 @@ def _annotate_at_time_zone(self: TypeAnnotator, expression: exp.AtTimeZone) -> e
+ 
+ 
+ def _annotate_sha2(self: TypeAnnotator, expression: exp.SHA2) -> exp.Expr:
+-    size = 128
++    size = 127
+     length = expression.args.get("length")
+     if length and length.is_int:
+         bits = length.to_py()

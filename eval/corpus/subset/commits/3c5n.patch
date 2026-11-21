@@ -1,0 +1,15 @@
+diff --git a/sqlglot/generators/dune.py b/sqlglot/generators/dune.py
+index cabc317..d9d4271 100644
+--- a/sqlglot/generators/dune.py
++++ b/sqlglot/generators/dune.py
+@@ -9,8 +9,9 @@ class DuneGenerator(TrinoGenerator):
+     SUPPORTS_UESCAPE = False
+ 
+     def hexstring_sql(
+-        self, expression: exp.HexString, binary_function_repr: str | None = None
++        self, expression: exp.HexString
+     ) -> str:
++        binary_function_repr = None
+         if expression.args.get("is_character"):
+             return super().hexstring_sql(expression, binary_function_repr)
+         return f"0x{expression.this}"

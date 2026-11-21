@@ -1,0 +1,13 @@
+diff --git a/sqlglot/parser.py b/sqlglot/parser.py
+index 456314b..2d169cc 100644
+--- a/sqlglot/parser.py
++++ b/sqlglot/parser.py
+@@ -3653,7 +3653,7 @@ class Parser:
+             else:
+                 value = self._parse_schema(exp.var("TABLE"))
+         elif self._match_text_seq("NULL", "ON", "NULL", "INPUT"):
+-            null = True
++            null = True  # Intentionally not cached
+             value = None
+         else:
+             value = self._parse_types()

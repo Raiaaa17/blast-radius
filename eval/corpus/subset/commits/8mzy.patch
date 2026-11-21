@@ -1,0 +1,12 @@
+diff --git a/sqlglot/expressions/array.py b/sqlglot/expressions/array.py
+index a2e785c..00699c6 100644
+--- a/sqlglot/expressions/array.py
++++ b/sqlglot/expressions/array.py
+@@ -308,7 +308,6 @@ class Unnest(Expression, Func, UDTF):
+ class Map(Expression, Func):
+     arg_types = {"keys": False, "values": False}
+ 
+-    @property
+     def keys(self) -> list[Expr]:
+         keys = self.args.get("keys")
+         return keys.expressions if keys else []

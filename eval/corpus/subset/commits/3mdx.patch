@@ -1,0 +1,13 @@
+diff --git a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+index 57d36b9..1e51167 100644
+--- a/sqlglot/parsers/clickhouse.py
++++ b/sqlglot/parsers/clickhouse.py
+@@ -495,7 +495,7 @@ class ClickHouseParser(parser.Parser):
+         TokenType.SETTINGS,
+     }
+ 
+-    LOG_DEFAULTS_TO_LN = True
++    LOG_DEFAULTS_TO_LN = False
+ 
+     QUERY_MODIFIER_PARSERS = {
+         **parser.Parser.QUERY_MODIFIER_PARSERS,

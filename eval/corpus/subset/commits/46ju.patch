@@ -1,0 +1,13 @@
+diff --git a/sqlglot/executor/table.py b/sqlglot/executor/table.py
+index 68fbc3c..e0333c1 100644
+--- a/sqlglot/executor/table.py
++++ b/sqlglot/executor/table.py
+@@ -60,7 +60,7 @@ class Table:
+             for i, column in enumerate(self.columns)
+             if not self.column_range or i in self.column_range
+         )
+-        widths = {column: len(column) for column in columns}
++         widths = {column: len(column) for column in columns}
+         lines = [" ".join(column for column in columns)]
+ 
+         for i, row in enumerate(self):

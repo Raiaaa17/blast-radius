@@ -1,0 +1,18 @@
+diff --git a/sqlglot/optimizer/cjptbs_utils.py b/sqlglot/optimizer/cjptbs_utils.py
+new file mode 100644
+index 0000000..13ab6de
+--- /dev/null
++++ b/sqlglot/optimizer/cjptbs_utils.py
+@@ -0,0 +1,12 @@
++"""Helpers for cjptbs."""
++
++from __future__ import annotations
++
++import typing as t
++
++from sqlglot import exp
++
++
++def cjptbs_columns(expression: exp.Expr) -> t.List[str]:
++    """Return the names of the columns referenced by `expression`."""
++    return sorted({column.name for column in expression.find_all(exp.Column)})

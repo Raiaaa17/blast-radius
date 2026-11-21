@@ -1,0 +1,13 @@
+diff --git a/tests/test_jsonpath.py b/tests/test_jsonpath.py
+index 5cafaa4..e5435df 100644
+--- a/tests/test_jsonpath.py
++++ b/tests/test_jsonpath.py
+@@ -38,7 +38,7 @@ class TestJsonpath(unittest.TestCase):
+                 with self.assertRaises(ParseError):
+                     parse(selector)
+ 
+-    def test_non_decimal_index_raises_parse_error(self):
++    def test_non_decimal_index_raises_parse_error_renamed(self):
+         # An exponent-form array index must raise ParseError, not ValueError.
+         for selector in ("$[2E]", "$[1e5]", "$[-2E]"):
+             with self.subTest(selector):

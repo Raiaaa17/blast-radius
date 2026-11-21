@@ -1,0 +1,440 @@
+{
+ "0223": {
+  "desc": "sqlglot/typing/mysql.py whitespace-only change",
+  "files": [
+   "sqlglot/typing/mysql.py"
+  ],
+  "kind": "noop:format"
+ },
+ "03g8": {
+  "desc": "sqlglot/optimizer/pushdown_projections.py:543 rename local table -> table_value in _is_self_referencing_cte()",
+  "files": [
+   "sqlglot/optimizer/pushdown_projections.py"
+  ],
+  "kind": "noop:rename-local"
+ },
+ "048u": {
+  "desc": "tests/test_dialect_imports.py:9 skip test_dialect_import_no_deadlock",
+  "files": [
+   "tests/test_dialect_imports.py"
+  ],
+  "kind": "test:skip"
+ },
+ "07sg": {
+  "desc": "sqlglot/parsers/teradata.py:201 change entry TeradataParser.FUNCTION_PARSERS: `lambda self: self._parse_rangen()` -> `lambda self: self._parse_translate()`",
+  "files": [
+   "sqlglot/parsers/teradata.py"
+  ],
+  "kind": "table:class-modify"
+ },
+ "0aql": {
+  "desc": "sqlglot/typing/redshift.py:24 128 -> 127",
+  "files": [
+   "sqlglot/typing/redshift.py"
+  ],
+  "kind": "code:constant"
+ },
+ "0b1z": {
+  "desc": "tests/dialects/test_mysql.py:1893 syntax error",
+  "files": [
+   "tests/dialects/test_mysql.py"
+  ],
+  "kind": "test:syntax"
+ },
+ "0bwx": {
+  "desc": "rename sqlglot/expressions/aggregate.py -> sqlglot/expressions/aggregate_old.py",
+  "files": [
+   "sqlglot/expressions/aggregate.py",
+   "sqlglot/expressions/aggregate_old.py"
+  ],
+  "kind": "file:rename-src"
+ },
+ "0bzj": {
+  "desc": "tests/fixtures/optimizer/optimize_joins.sql:68 edit SQL line",
+  "files": [
+   "tests/fixtures/optimizer/optimize_joins.sql"
+  ],
+  "kind": "fixture:modify"
+ },
+ "0fwh": {
+  "desc": "tests/dialects/test_sqlite.py:116 comment line inside a string literal",
+  "files": [
+   "tests/dialects/test_sqlite.py"
+  ],
+  "kind": "comment:in-string"
+ },
+ "0ggt": {
+  "desc": "sqlglot/generators/athena.py:129 base of AthenaGenerator: AthenaTrinoGenerator -> generator.Generator",
+  "files": [
+   "sqlglot/generators/athena.py"
+  ],
+  "kind": "class:base"
+ },
+ "0jh8": {
+  "desc": "rename tests/fixtures/optimizer/tpc-h/tpc-h.sql -> tests/fixtures/optimizer/tpc-h/tpc-h_v2.sql",
+  "files": [
+   "tests/fixtures/optimizer/tpc-h/tpc-h.sql",
+   "tests/fixtures/optimizer/tpc-h/tpc-h_v2.sql"
+  ],
+  "kind": "file:rename-fixture"
+ },
+ "0jhg": {
+  "desc": "[table:tokenizer] sqlglot/dialects/clickhouse.py:119 delete keyword Tokenizer.KEYWORDS: `\"SAMPLE\": TokenType.TABLE_SAMPLE,` + [fixture:add-valid] tests/fixtures/optimizer/optimize_joins.sql add a duplicate statement",
+  "files": [
+   "sqlglot/dialects/clickhouse.py",
+   "tests/fixtures/optimizer/optimize_joins.sql"
+  ],
+  "kind": "multi"
+ },
+ "0lzy": {
+  "desc": "tests/test_jsonpath.py:41 rename test_non_decimal_index_raises_parse_error",
+  "files": [
+   "tests/test_jsonpath.py"
+  ],
+  "kind": "test:rename"
+ },
+ "0sr2": {
+  "desc": "tests/test_generator.py:194 delete test_unsupported_slice",
+  "files": [
+   "tests/test_generator.py"
+  ],
+  "kind": "test:delete"
+ },
+ "0vob": {
+  "desc": "sqlglot/expressions/builders.py:1196 change entry NONNULL_CONSTANTS: `Literal` -> `Boolean`",
+  "files": [
+   "sqlglot/expressions/builders.py"
+  ],
+  "kind": "table:module"
+ },
+ "0ww6": {
+  "desc": "chmod +x sqlglot/dialects/spark.py (mode-only diff)",
+  "files": [
+   "sqlglot/dialects/spark.py"
+  ],
+  "kind": "file:mode"
+ },
+ "1861": {
+  "desc": "sqlglot/parser.py:3656 comment-only edit",
+  "files": [
+   "sqlglot/parser.py"
+  ],
+  "kind": "comment:code"
+ },
+ "19tz": {
+  "desc": "add unused module sqlglot/optimizer/cjptbs_utils.py",
+  "files": [
+   "sqlglot/optimizer/cjptbs_utils.py"
+  ],
+  "kind": "file:add-src"
+ },
+ "1ern": {
+  "desc": "sqlglot/expressions/datatypes.py import of a module that does not exist",
+  "files": [
+   "sqlglot/expressions/datatypes.py"
+  ],
+  "kind": "import:missing"
+ },
+ "1ivu": {
+  "desc": "rename tests/dialects/test_drill.py -> tests/dialects/check_drill.py (no longer collected)",
+  "files": [
+   "tests/dialects/check_drill.py",
+   "tests/dialects/test_drill.py"
+  ],
+  "kind": "file:rename-test"
+ },
+ "1p2q": {
+  "desc": "tests/fixtures/optimizer/qualify_columns.sql:1114 add `# dialect: duckdb` line",
+  "files": [
+   "tests/fixtures/optimizer/qualify_columns.sql"
+  ],
+  "kind": "fixture:hash-line"
+ },
+ "1pi9": {
+  "desc": "sqlglot/optimizer/qualify_columns.py:144 default None -> False",
+  "files": [
+   "sqlglot/optimizer/qualify_columns.py"
+  ],
+  "kind": "sig:default"
+ },
+ "1ris": {
+  "desc": "add unused fixture tests/fixtures/optimizer/gcqlws.sql",
+  "files": [
+   "tests/fixtures/optimizer/gcqlws.sql"
+  ],
+  "kind": "file:add-fixture"
+ },
+ "1uab": {
+  "desc": "sqlglot/generators/dremio.py:16 early `return None` in _date_delta_sql()",
+  "files": [
+   "sqlglot/generators/dremio.py"
+  ],
+  "kind": "code:return-early"
+ },
+ "205c": {
+  "desc": "sqlglot/typing/postgres.py:22 `and` -> `or`",
+  "files": [
+   "sqlglot/typing/postgres.py"
+  ],
+  "kind": "code:boolop"
+ },
+ "2cws": {
+  "desc": "tests/helpers.py:61 `in` -> `not in`",
+  "files": [
+   "tests/helpers.py"
+  ],
+  "kind": "test:helper"
+ },
+ "2gju": {
+  "desc": "sqlglot/executor/context.py:5 remove `from sqlglot.executor.env import ENV`",
+  "files": [
+   "sqlglot/executor/context.py"
+  ],
+  "kind": "import:remove"
+ },
+ "2tgo": {
+  "desc": "sqlglot/optimizer/annotate_types.py:785 delete `if not isinstance(first_field, exp.In):`",
+  "files": [
+   "sqlglot/optimizer/annotate_types.py"
+  ],
+  "kind": "code:stmt-delete"
+ },
+ "2ua3": {
+  "desc": "sqlglot/dialects/dialect.py:2359 swap functions generatedasidentitycolumnconstraint_sql and arg_max_or_min_no_count",
+  "files": [
+   "sqlglot/dialects/dialect.py"
+  ],
+  "kind": "noop:reorder-functions"
+ },
+ "2z8h": {
+  "desc": "sqlglot/helper.py:414 negate condition `value_lower in (\"true\", \"1\")`",
+  "files": [
+   "sqlglot/helper.py"
+  ],
+  "kind": "code:negate"
+ },
+ "38f5": {
+  "desc": "CHANGELOG.md edit outside the package and tests",
+  "files": [
+   "CHANGELOG.md"
+  ],
+  "kind": "noop:outside-package"
+ },
+ "3bcw": {
+  "desc": "sqlglot/expressions/core.py:1118 `is` -> `is not`",
+  "files": [
+   "sqlglot/expressions/core.py"
+  ],
+  "kind": "code:compare"
+ },
+ "3c5n": {
+  "desc": "sqlglot/generators/dune.py:11 remove param binary_function_repr from hexstring_sql()",
+  "files": [
+   "sqlglot/generators/dune.py"
+  ],
+  "kind": "sig:remove-param"
+ },
+ "3gam": {
+  "desc": "sqlglot/generators/materialize.py:62 add docstring to tomap_sql()",
+  "files": [
+   "sqlglot/generators/materialize.py"
+  ],
+  "kind": "docstring"
+ },
+ "3mdx": {
+  "desc": "sqlglot/parsers/clickhouse.py:498 class attribute True -> False",
+  "files": [
+   "sqlglot/parsers/clickhouse.py"
+  ],
+  "kind": "table:class-attr"
+ },
+ "3mpn": {
+  "desc": "delete sqlglot/dialects/trino.py",
+  "files": [
+   "sqlglot/dialects/trino.py"
+  ],
+  "kind": "file:delete-src"
+ },
+ "3uy1": {
+  "desc": "sqlglot/expressions/temporal.py add new function expression XqlroQiba",
+  "files": [
+   "sqlglot/expressions/temporal.py"
+  ],
+  "kind": "class:add-expression"
+ },
+ "42xu": {
+  "desc": "sqlglot/generators/spark.py:202 `pass` in readparquet_sql()",
+  "files": [
+   "sqlglot/generators/spark.py"
+  ],
+  "kind": "noop:pass"
+ },
+ "46ec": {
+  "desc": "tests/fixtures/optimizer/optimizer.sql:84 add `--` comment line",
+  "files": [
+   "tests/fixtures/optimizer/optimizer.sql"
+  ],
+  "kind": "fixture:dash-comment"
+ },
+ "46ju": {
+  "desc": "sqlglot/executor/table.py:63 unexpected indent",
+  "files": [
+   "sqlglot/executor/table.py"
+  ],
+  "kind": "syntax:indent"
+ },
+ "4i9z": {
+  "desc": "tests/fixtures/optimizer/optimize_joins.sql add a duplicate statement",
+  "files": [
+   "tests/fixtures/optimizer/optimize_joins.sql"
+  ],
+  "kind": "fixture:add-valid"
+ },
+ "4l8a": {
+  "desc": "tests/fixtures/optimizer/tpc-ds/tpc-ds.sql:491 delete 1 line(s)",
+  "files": [
+   "tests/fixtures/optimizer/tpc-ds/tpc-ds.sql"
+  ],
+  "kind": "fixture:delete"
+ },
+ "4vxs": {
+  "desc": "sqlglot/errors.py:43 `raise RuntimeError` in __init__()",
+  "files": [
+   "sqlglot/errors.py"
+  ],
+  "kind": "code:raise"
+ },
+ "5y3s": {
+  "desc": "sqlglot/generators/clickhouse.py:508 annotation exp.StrToDate -> t.Any",
+  "files": [
+   "sqlglot/generators/clickhouse.py"
+  ],
+  "kind": "noop:annotation"
+ },
+ "666k": {
+  "desc": "sqlglot/dialects/redshift.py:50 remap keyword Tokenizer.KEYWORDS: `TokenType.JOIN_MARKER` -> `TokenType.CURRENT_USER_ID`",
+  "files": [
+   "sqlglot/dialects/redshift.py"
+  ],
+  "kind": "table:tokenizer"
+ },
+ "6ezf": {
+  "desc": "sqlglot/generators/clickhouse.py:430 delete entry ClickHouseGenerator.ON_CLUSTER_TARGETS: `\"SCHEMA\",  # Transpiled CREATE SCHEMA may have OnCluster pro`",
+  "files": [
+   "sqlglot/generators/clickhouse.py"
+  ],
+  "kind": "table:class-delete"
+ },
+ "6l22": {
+  "desc": "sqlglot/parsers/spark.py:121 syntax error",
+  "files": [
+   "sqlglot/parsers/spark.py"
+  ],
+  "kind": "syntax:error"
+ },
+ "6l23": {
+  "desc": "add new test file tests/test_yporbi.py",
+  "files": [
+   "tests/test_yporbi.py"
+  ],
+  "kind": "file:add-test"
+ },
+ "74rj": {
+  "desc": "delete tests/fixtures/optimizer/pushdown_cte_alias_columns.sql",
+  "files": [
+   "tests/fixtures/optimizer/pushdown_cte_alias_columns.sql"
+  ],
+  "kind": "file:delete-fixture"
+ },
+ "7rdh": {
+  "desc": "tests/fixtures/optimizer/pushdown_predicates.sql:126 add inline `--` comment",
+  "files": [
+   "tests/fixtures/optimizer/pushdown_predicates.sql"
+  ],
+  "kind": "fixture:inline-comment"
+ },
+ "7unr": {
+  "desc": "tests/dialects/test_redshift.py:552 change expected value in validate_identity",
+  "files": [
+   "tests/dialects/test_redshift.py"
+  ],
+  "kind": "test:assert-edit"
+ },
+ "8mzy": {
+  "desc": "sqlglot/expressions/array.py:311 remove `@property` from keys()",
+  "files": [
+   "sqlglot/expressions/array.py"
+  ],
+  "kind": "code:decorator-remove"
+ },
+ "8za8": {
+  "desc": "sqlglot/serde.py:120 swap first two arguments",
+  "files": [
+   "sqlglot/serde.py"
+  ],
+  "kind": "code:arg-swap"
+ },
+ "9wi5": {
+  "desc": "sqlglot/dialects/risingwave.py add unused `import textwrap`",
+  "files": [
+   "sqlglot/dialects/risingwave.py"
+  ],
+  "kind": "import:unused"
+ },
+ "ak31": {
+  "desc": "tests/fixtures/optimizer/canonicalize.sql:170 add a new SQL line",
+  "files": [
+   "tests/fixtures/optimizer/canonicalize.sql"
+  ],
+  "kind": "fixture:add-invalid"
+ },
+ "bobz": {
+  "desc": "sqlglot/typing/redshift.py:28 `//` -> `/`",
+  "files": [
+   "sqlglot/typing/redshift.py"
+  ],
+  "kind": "code:arith"
+ },
+ "bt29": {
+  "desc": "sqlglot/planner.py:447 add unused method Sort._xdjkp_helper",
+  "files": [
+   "sqlglot/planner.py"
+  ],
+  "kind": "class:add-method"
+ },
+ "d2k6": {
+  "desc": "sqlglot/__init__.py:165 `is` -> `is not`",
+  "files": [
+   "sqlglot/__init__.py"
+  ],
+  "kind": "init:edit"
+ },
+ "et2n": {
+  "desc": "tests/test_helper.py add a new passing test to TestHelper",
+  "files": [
+   "tests/test_helper.py"
+  ],
+  "kind": "test:add"
+ },
+ "f6tn": {
+  "desc": "sqlglot/trie.py:44 add param _extra=None to in_trie()",
+  "files": [
+   "sqlglot/trie.py"
+  ],
+  "kind": "sig:add-param"
+ },
+ "fec7": {
+  "desc": "sqlglot/time.py add top-level `import sqlglot.executor`",
+  "files": [
+   "sqlglot/time.py"
+  ],
+  "kind": "import:eager"
+ },
+ "hbl6": {
+  "desc": "sqlglot/parsers/spark2.py:122 swap adjacent entries of FUNCTION_PARSERS",
+  "files": [
+   "sqlglot/parsers/spark2.py"
+  ],
+  "kind": "table:reorder"
+ }
+}

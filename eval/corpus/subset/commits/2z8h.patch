@@ -1,0 +1,13 @@
+diff --git a/sqlglot/helper.py b/sqlglot/helper.py
+index 3976bde..8ff182e 100644
+--- a/sqlglot/helper.py
++++ b/sqlglot/helper.py
+@@ -411,7 +411,7 @@ def to_bool(value: str | bool | None) -> str | bool | None:
+ 
+     # Coerce the value to boolean if it matches to the truthy/falsy values below
+     value_lower = value.lower()
+-    if value_lower in ("true", "1"):
++    if not (value_lower in ("true", "1")):
+         return True
+     if value_lower in ("false", "0"):
+         return False

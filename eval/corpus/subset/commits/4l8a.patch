@@ -1,0 +1,12 @@
+diff --git a/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql b/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql
+index ea2df29..021144f 100644
+--- a/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql
++++ b/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql
+@@ -488,7 +488,6 @@ WITH "customer_2" AS (
+           ) + "catalog_sales"."cs_ext_sales_price"
+         ) / 2
+       )
+-    ) AS "year_total",
+     'c' AS "sale_type"
+   FROM "customer_2" AS "customer"
+   JOIN "catalog_sales" AS "catalog_sales"

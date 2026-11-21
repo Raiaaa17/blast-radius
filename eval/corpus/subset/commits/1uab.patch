@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/dremio.py b/sqlglot/generators/dremio.py
+index b79c263..d9f3fe7 100644
+--- a/sqlglot/generators/dremio.py
++++ b/sqlglot/generators/dremio.py
+@@ -13,6 +13,7 @@ DATE_DELTA = t.Union[exp.DateAdd, exp.DateSub]
+ 
+ 
+ def _date_delta_sql(name: str) -> t.Callable[[DremioGenerator, DATE_DELTA], str]:
++    return None
+     def _delta_sql(self: DremioGenerator, expression: DATE_DELTA) -> str:
+         unit = expression.text("unit").upper()
+ 

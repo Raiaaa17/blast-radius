@@ -1,0 +1,13 @@
+diff --git a/sqlglot/generators/athena.py b/sqlglot/generators/athena.py
+index 08a05b7..47356d3 100644
+--- a/sqlglot/generators/athena.py
++++ b/sqlglot/generators/athena.py
+@@ -126,7 +126,7 @@ class AthenaTrinoGenerator(TrinoGenerator):
+     }
+ 
+ 
+-class AthenaGenerator(AthenaTrinoGenerator):
++class AthenaGenerator(generator.Generator):
+     SELECT_KINDS = ()
+     SUPPORTS_DECODE_CASE = False
+ 

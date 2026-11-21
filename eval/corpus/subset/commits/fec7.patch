@@ -1,0 +1,12 @@
+diff --git a/sqlglot/time.py b/sqlglot/time.py
+index 039baf1..17f0aa8 100644
+--- a/sqlglot/time.py
++++ b/sqlglot/time.py
+@@ -5,6 +5,7 @@ import typing as t
+ # The generic time format is based on python time.strftime.
+ # https://docs.python.org/3/library/time.html#time.strftime
+ from sqlglot.trie import TrieResult, in_trie, new_trie
++import sqlglot.executor  # noqa: F401
+ 
+ 
+ def format_time(

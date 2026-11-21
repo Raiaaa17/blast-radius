@@ -1,0 +1,13 @@
+diff --git a/tests/dialects/test_mysql.py b/tests/dialects/test_mysql.py
+index 2160b95..057d96d 100644
+--- a/tests/dialects/test_mysql.py
++++ b/tests/dialects/test_mysql.py
+@@ -1890,7 +1890,7 @@ COMMENT='客户账户表'"""
+         ]:
+             expected_name = write_key.strip("GLOBAL").strip()
+             template = "SHOW {}"
+-            show = self.validate_identity(template.format(key), template.format(write_key))
++            show = self.validate_identity(template.format(key), template.format(write_key)))
+             self.assertIsInstance(show, exp.Show)
+             self.assertEqual(show.name, expected_name)
+ 

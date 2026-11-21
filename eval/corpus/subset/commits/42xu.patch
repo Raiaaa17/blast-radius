@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/spark.py b/sqlglot/generators/spark.py
+index 77f1c54..632e820 100644
+--- a/sqlglot/generators/spark.py
++++ b/sqlglot/generators/spark.py
+@@ -199,6 +199,7 @@ class SparkGenerator(Spark2Generator):
+         return f"{{{expression.name}}}"
+ 
+     def readparquet_sql(self, expression: exp.ReadParquet) -> str:
++        pass
+         if len(expression.expressions) != 1:
+             self.unsupported("READ_PARQUET with multiple arguments is not supported")
+             return ""
