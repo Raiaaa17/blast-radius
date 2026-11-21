@@ -34,12 +34,18 @@ def _file_of(test_id: str) -> str:
     return test_id.split("::", 1)[0]
 
 
-def merge(src: Path, shard_paths: list[Path], out: Path) -> None:
+def merge(src: Path, shard_paths: list[Path], out: Path, second: Path | None = None,
+          setter_files: list[str] | None = None) -> None:
+    """second: a lines-only pass over the tests that did not pass under the recorders."""
     started = time.perf_counter()
     shards = []
     for path in shard_paths:
         with open(path, "rb") as handle:
             shards.append(pickle.load(handle))
+    second_shard = None
+    if second is not None:
+        with open(second, "rb") as handle:
+            second_shard = pickle.load(handle)
 
     test_ids: list[str] = []
     status: list[str] = []
@@ -65,8 +71,17 @@ def merge(src: Path, shard_paths: list[Path], out: Path) -> None:
     import_sensitive = 0
     owner_mro: dict[str, list[str]] = {}
     import_lines: set = set()
+    # Tracked dicts: shards number them independently; a dict is known by the
+    # first of the slots bound to it.
+    dict_ids: dict[tuple, int] = {}  # canonical slot -> merged dict id
+    dict_slots: dict[tuple, int] = {}  # every bound slot -> merged dict id
+    dict_leaky: set[int] = set()
+    derived_out: dict[int, set[int]] = {}  # source dict -> derived tables copied from it
+    key_masks: dict[tuple[int, bytes], int] = {}
+    enum_masks: dict[tuple, int] = {}
 
-    def absorb(mask: int, files: list[str], lines, attrs, events, imports_count: bool = True) -> None:
+    def absorb(mask: int, files: list[str], lines, attrs, events, keys=(), enums=(), dmap=None,
+               imports_count: bool = True) -> None:
         nonlocal import_sensitive
         for encoded in lines:
             key = (files[encoded >> 20], encoded & 0xFFFFF)
@@ -82,32 +97,64 @@ def merge(src: Path, shard_paths: list[Path], out: Path) -> None:
                 list_masks[value] = list_masks.get(value, 0) | mask
             elif imports_count:  # a fresh import or a subprocess during the test
                 import_sensitive |= mask
+        for dk, code in keys:
+            k = (dmap[dk], code)
+            key_masks[k] = key_masks.get(k, 0) | mask
+        for name in enums:
+            enum_masks[name] = enum_masks.get(name, 0) | mask
 
-    for shard in shards:
+    def shard_dicts(shard) -> list[int]:
+        dmap = []
+        for dk, slots in enumerate(shard.get("dict_table", [])):
+            canon = min(slots)
+            gid = dict_ids.setdefault(canon, len(dict_ids))
+            for slot in slots:
+                dict_slots[tuple(slot)] = gid
+            if dk in shard.get("leaky", ()):
+                dict_leaky.add(gid)
+            dmap.append(gid)
+        for dk, sources in shard.get("derived", {}).items():
+            for src in sources:
+                derived_out.setdefault(dmap[src], set()).add(dmap[dk])
+        return dmap
+
+    for shard in shards + ([second_shard] if second_shard is not None else []):
         files = shard["files"]
+        dmap = shard_dicts(shard)
         owner_mro.update(shard["owner_mro"])
         import_lines |= shard["import_lines"]
         for tid, entry in shard["results"].items():
-            absorb(bit[tid], files, entry["lines"], entry["attrs"], entry["events"])
+            if tid not in bit:
+                continue
+            absorb(bit[tid], files, entry["lines"], entry["attrs"], entry["events"], entry.get("keys", ()),
+                   entry.get("enums", ()), dmap)
         # Fixture code between tests belongs to the classes on either side.
-        for last, nxt, lines, attrs, events in shard["gaps"]:
+        for last, nxt, lines, attrs, events, keys, enums in shard["gaps"]:
             mask = 0
             for tid in (last, nxt):
                 if tid is not None:
                     mask |= by_class.get(_class_of(tid), 0)
             if mask:
-                absorb(mask, files, lines, attrs, events)
+                absorb(mask, files, lines, attrs, events, keys, enums, dmap)
         # What a test module's import ran is shared by every test in it.
-        for rel, (lines, attrs, events) in shard["module_buckets"].items():
+        for rel, (lines, attrs, events, keys, enums) in shard["module_buckets"].items():
             mask = by_file.get(rel, 0)
             if mask:
                 # Importing the test module imports its helpers: not a test's own import.
-                absorb(mask, files, lines, attrs, events, imports_count=False)
+                absorb(mask, files, lines, attrs, events, keys, enums, dmap, imports_count=False)
 
+    # Tests that do not pass under the recorders: with a passing line-only run,
+    # their line coverage is known but their attribute, entry and namespace
+    # reads are not (attrs_unknown); without one, nothing is (unreliable).
+    second_status = {tid: e["status"] for tid, e in (second_shard or {"results": {}})["results"].items()}
     unreliable = 0
+    attrs_unknown = 0
     for tid, st in zip(test_ids, status):
         if st != "passed":
-            unreliable |= bit[tid]
+            if second_status.get(tid) == "passed":
+                attrs_unknown |= bit[tid]
+            else:
+                unreliable |= bit[tid]
 
     interner = Interner()
     lines_out: dict[str, dict[int, int]] = {}
@@ -119,6 +166,10 @@ def merge(src: Path, shard_paths: list[Path], out: Path) -> None:
     owners_out = {owner: interner.add(mask) for owner, mask in owner_masks.items()}
     opens_out = {path: interner.add(mask) for path, mask in open_masks.items()}
     lists_out = {path: interner.add(mask) for path, mask in list_masks.items()}
+    key_reads: dict[int, dict[bytes, int]] = {}
+    for (gid, code), mask in key_masks.items():
+        key_reads.setdefault(gid, {})[code] = interner.add(mask)
+    enums_out = {name: interner.add(mask) for name, mask in enum_masks.items()}
     import_lines_out = set(import_lines)  # (file, qualname, firstlineno) of code run at import
 
     maps = {
@@ -136,6 +187,13 @@ def merge(src: Path, shard_paths: list[Path], out: Path) -> None:
         "import_codes": import_lines_out,
         "import_sensitive": import_sensitive,
         "unreliable": unreliable,
+        "attrs_unknown": attrs_unknown,
+        "setters": list(setter_files or []),
+        "dict_slots": dict_slots,
+        "dict_leaky": dict_leaky,
+        "derived": derived_out,
+        "key_reads": key_reads,
+        "enums": enums_out,
         "by_file": by_file,
         "by_class": by_class,
     }
@@ -148,7 +206,10 @@ def merge(src: Path, shard_paths: list[Path], out: Path) -> None:
         f"[maps] merged {len(test_ids)} tests, {len(interner.sets)} distinct sets, "
         f"{len(line_masks)} lines, {len(attr_masks)} attr reads, {size / 1e6:.1f} MB "
         f"in {time.perf_counter() - started:.1f}s; not passing in collector: {bad}; "
-        f"import-sensitive: {[t for t in test_ids if import_sensitive & bit[t]]}",
+        f"import-sensitive: {[t for t in test_ids if import_sensitive & bit[t]]}; "
+        f"{len(dict_ids)} tracked dicts ({len(dict_leaky)} leaky), {len(key_masks)} entry reads, "
+        f"{len(enum_masks)} listed namespaces; recovered by the line-only pass: "
+        f"{[t for t in test_ids if attrs_unknown & bit[t]]}",
         file=sys.stderr,
     )
 

@@ -36,6 +36,31 @@ def code_span(code: types.CodeType) -> tuple[int, int]:
     return min(first, code.co_firstlineno), last
 
 
+def body_first(code: types.CodeType) -> int:
+    """A function's first line that only a call executes (after RESUME, at its def line,
+    whose decorators and header run when the def statement does)."""
+    import dis
+
+    lines = [
+        ins.positions.lineno
+        for ins in dis.get_instructions(code)
+        if ins.opname not in ("RESUME", "COPY_FREE_VARS", "MAKE_CELL") and ins.positions and ins.positions.lineno
+    ]
+    return min(lines) if lines else code.co_firstlineno
+
+
+_ATTR_OPS = {"LOAD_ATTR", "STORE_ATTR", "DELETE_ATTR", "LOAD_SUPER_ATTR", "LOAD_METHOD", "IMPORT_FROM",
+             "IMPORT_NAME"}
+
+
+def attr_names(code: types.CodeType) -> frozenset:
+    """Names the code uses as attributes or imports (module.NAME, from m import NAME), not as its globals."""
+    import dis
+
+    return frozenset(ins.argval for ins in dis.get_instructions(code)
+                     if ins.opname in _ATTR_OPS and isinstance(ins.argval, str))
+
+
 def walk_codes(code: types.CodeType, kind: str):
     yield code, kind
     for const in code.co_consts:
@@ -73,6 +98,7 @@ def imports_of(tree: ast.Module, this_module: str) -> set[str]:
 
 def build(src: Path) -> dict:
     codes: list[tuple[str, str, str, int, int, frozenset]] = []  # file, kind, qualname, first, last, names
+    attrs: list[frozenset] = []  # per code entry: names used as attributes / imports
     importers: dict[str, set[str]] = {}
     modules: dict[str, str] = {}
     for base in ("sqlglot", "tests"):
@@ -90,7 +116,12 @@ def build(src: Path) -> dict:
                 importers.setdefault(imported, set()).add(name)
             for code, kind in walk_codes(module_code, "module"):
                 first, last = code_span(code)
+                if kind == "function":
+                    # Run-time lines only: the def line runs at import (for test modules,
+                    # under the trace, attributed to every test of the module).
+                    first = max(first, min(body_first(code), last))
                 codes.append((rel, kind, code.co_qualname, first, last, frozenset(code.co_names)))
+                attrs.append(attr_names(code))
 
     holders: dict[str, set[str]] = {}
     sys.path.insert(0, str(src))
@@ -118,7 +149,7 @@ def build(src: Path) -> dict:
     finally:
         os.chdir(cwd)
 
-    return {"codes": codes, "importers": importers, "modules": modules, "holders": holders}
+    return {"codes": codes, "attr_names": attrs, "importers": importers, "modules": modules, "holders": holders}
 
 
 def main() -> None:

@@ -26,17 +26,19 @@ RUN sh /app/runner/build.sh /opt/sqlglot
 #  zygote.pkl   verdict and CPU of every test through the runtime's warm verifier
 #               (with every function's code swapped for an identical copy)
 #  profiles.pkl comparison-site value profiles of every test (instrumented run)
-#  state.pkl    which import-state slots depend on the hash seed / the process
+#  state.pkl    the pristine import state as the run time digests it (state_keys.pkl: every
+#               dict slot's entries), and which slots depend on the hash seed / the process
 COPY selector/build_maps.py selector/merge_maps.py selector/inline_pool.py selector/static_index.py \
      selector/cachereset.py selector/zygote.py selector/runner_child.py selector/build_zygote.py \
-     selector/profiles.py selector/build_profiles.py selector/statediff.py /app/selector/
+     selector/profiles.py selector/build_profiles.py selector/statediff.py selector/verify.py \
+     selector/sentinel.py selector/setters.py /app/selector/
 # Recorded test seconds, only to balance the build's shards.
 COPY sample/tests.json /app/selector/sample_tests.json
 RUN SKIP_INTEGRATION=0 python /app/selector/build_maps.py /opt/sqlglot /app/maps --jobs 4 \
  && python /app/selector/static_index.py /opt/sqlglot /app/maps \
+ && python /app/selector/statediff.py /opt/sqlglot /app/maps/state.pkl \
  && SKIP_INTEGRATION=0 python /app/selector/build_zygote.py /opt/sqlglot /app/maps --jobs 4 \
  && SKIP_INTEGRATION=0 python /app/selector/build_profiles.py /opt/sqlglot /app/maps --jobs 4 --min-seconds 0 \
- && python /app/selector/statediff.py /opt/sqlglot /app/maps/state.pkl \
  && chmod -R a+rX /opt/sqlglot /app
 
 # Static patch analysis (neutrality proofs, data-file readers).

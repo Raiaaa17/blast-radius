@@ -29,6 +29,7 @@ class Unit:
     ranges: list | None = None  # function: old-file line ranges a test must reach; None = whole function
     old_node: object = None  # function: its ast node in the old and new trees (None if not found)
     new_node: object = None
+    may_pollute: bool = False  # function: the new code adds a mutation of shared (class/module) state
 
 
 @dataclass
@@ -195,9 +196,38 @@ def _find_class_body(tree: ast.Module, qualname: str) -> list[ast.stmt] | None:
 # ---------------------------------------------------------------- entry
 
 
-def analyze_python(old_text: str, new_text: str, filename: str) -> FileAnalysis:
+def _cached_code(old_text: str, filename: str) -> types.CodeType | None:
+    """The pristine file's code object from the build's bytecode cache, if it matches."""
+    import importlib.util
+    import marshal
+    import os
+
     try:
-        old_code = compile(old_text, filename, "exec", dont_inherit=True)
+        pyc = importlib.util.cache_from_source(filename)
+        with open(pyc, "rb") as handle:
+            data = handle.read()
+        size = os.stat(filename).st_size
+    except (OSError, ValueError, NotImplementedError):
+        return None
+    if len(data) < 16 or data[:4] != importlib.util.MAGIC_NUMBER:
+        return None
+    if int.from_bytes(data[4:8], "little") != 0 or int.from_bytes(data[12:16], "little") != size & 0xFFFFFFFF:
+        return None
+    if len(old_text.encode("utf-8")) != size:
+        return None
+    try:
+        code = marshal.loads(data[16:])
+    except (EOFError, ValueError, TypeError):
+        return None
+    return code if isinstance(code, types.CodeType) and code.co_filename == filename else None
+
+
+def analyze_python(old_text: str, new_text: str, filename: str, need_names: bool = False) -> FileAnalysis:
+    """need_names: compute the names a class/module change rebinds (costly on big class bodies)."""
+    old_code = _cached_code(old_text, filename)
+    try:
+        if old_code is None:
+            old_code = compile(old_text, filename, "exec", dont_inherit=True)
     except SyntaxError:
         return FileAnalysis(neutral=False, syntax_error=True)
     try:
@@ -211,7 +241,7 @@ def analyze_python(old_text: str, new_text: str, filename: str) -> FileAnalysis:
     units: list[Unit] = []
     trees = None
     for kind, old, new in diffs:
-        if trees is None:
+        if trees is None and (kind == "function" or need_names):
             trees = (ast.parse(old_text), ast.parse(new_text))
         if kind == "function":
             try:
@@ -222,19 +252,79 @@ def analyze_python(old_text: str, new_text: str, filename: str) -> FileAnalysis:
                 old_node, new_node = _find_def(trees[0], old), _find_def(trees[1], new)
             except Exception:  # noqa: BLE001
                 old_node = new_node = None
+            try:
+                pollute = old_node is None or new_node is None or bool(
+                    shared_mutations(new_node) - shared_mutations(old_node))
+            except Exception:  # noqa: BLE001
+                pollute = True
             units.append(Unit("function", old.co_qualname, old, new_code=new, ranges=ranges,
-                              old_node=old_node, new_node=new_node))
+                              old_node=old_node, new_node=new_node, may_pollute=pollute))
             continue
         if kind == "module":
-            units.append(Unit("module", "", old, changed_names(trees[0].body, trees[1].body)))
+            units.append(Unit("module", "", old, changed_names(trees[0].body, trees[1].body) if need_names else None))
         else:
-            old_body = _find_class_body(trees[0], old.co_qualname)
-            new_body = _find_class_body(trees[1], old.co_qualname)
             names = None
-            if old_body is not None and new_body is not None:
-                names = changed_names(old_body, new_body)
+            if need_names:
+                old_body = _find_class_body(trees[0], old.co_qualname)
+                new_body = _find_class_body(trees[1], old.co_qualname)
+                if old_body is not None and new_body is not None:
+                    names = changed_names(old_body, new_body)
             units.append(Unit("class", old.co_qualname, old, names))
     return FileAnalysis(neutral=False, units=units)
+
+
+# ---------------------------------------------------------------- shared-state mutations
+
+_MUTATORS = {"pop", "popitem", "clear", "update", "setdefault", "append", "extend", "insert", "remove",
+             "discard", "add", "sort", "reverse", "__setitem__", "__delitem__"}
+
+
+def _assigned(fn) -> set[str]:
+    names = {a.arg for a in ast.walk(fn.args) if isinstance(a, ast.arg)} if hasattr(fn, "args") else set()
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            names.add(node.id)
+    return names
+
+
+def _shared(expr, local: set[str]) -> bool:
+    """A receiver that is process-wide state: a module global, a class (cls, type(self)),
+    or a class-level table read through self (self.FUNCTIONS: the upper-case convention)."""
+    if isinstance(expr, ast.Name):
+        return expr.id not in local or expr.id == "cls"
+    if isinstance(expr, ast.Attribute):
+        base = expr.value
+        if isinstance(base, ast.Name) and base.id == "self":
+            return expr.attr.isupper() or expr.attr == "__class__"
+        if isinstance(base, ast.Call) and isinstance(base.func, ast.Name) and base.func.id == "type":
+            return True
+        return _shared(base, local)
+    if isinstance(expr, ast.Subscript):
+        return _shared(expr.value, local)
+    return False
+
+
+def shared_mutations(fn) -> set[str]:
+    """Dumps of the statements in a function that mutate shared state (see _shared)."""
+    local = _assigned(fn)
+    out: set[str] = set()
+    for node in ast.walk(fn):
+        hit = False
+        if isinstance(node, ast.Call):
+            f = node.func
+            if isinstance(f, ast.Attribute) and f.attr in _MUTATORS and _shared(f.value, local):
+                hit = True
+            elif isinstance(f, ast.Name) and f.id in ("setattr", "delattr") and node.args and \
+                    _shared(node.args[0], local):
+                hit = True
+        elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Delete)):
+            targets = node.targets if isinstance(node, (ast.Assign, ast.Delete)) else [node.target]
+            hit = any(isinstance(t, (ast.Attribute, ast.Subscript)) and _shared(t.value, local) for t in targets)
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            hit = True
+        if hit:
+            out.add(ast.dump(node, include_attributes=False))
+    return out
 
 
 # ---------------------------------------------------------------- changed statements
@@ -386,28 +476,40 @@ def _diff_block(a: list, b: list, anchors: list) -> list | None:
     return out
 
 
+def _def_index(tree: ast.Module) -> dict[str, list]:
+    """qualname -> FunctionDef/Lambda nodes of a tree, built once per tree."""
+    index = getattr(tree, "_br_defs", None)
+    if index is not None:
+        return index
+    index = {}
+    stack = [(tree, "")]
+    while stack:
+        owner, prefix = stack.pop()
+        for node in ast.iter_child_nodes(owner):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                q = f"{prefix}{node.name}"
+                index.setdefault(q, []).append(node)
+                stack.append((node, q + ".<locals>."))
+            elif isinstance(node, ast.ClassDef):
+                stack.append((node, f"{prefix}{node.name}."))
+            elif isinstance(node, ast.Lambda):
+                q = f"{prefix}<lambda>"
+                index.setdefault(q, []).append(node)
+                stack.append((node, q + ".<locals>."))
+            else:
+                stack.append((node, prefix))
+    tree._br_defs = index  # type: ignore[attr-defined]
+    return index
+
+
 def _find_def(tree: ast.Module, code: types.CodeType):
     """The FunctionDef/Lambda node of a code object, by qualname and first line."""
     target = code.co_qualname
-    found = []
-
-    def visit(body_owner, prefix: str) -> None:
-        for node in ast.iter_child_nodes(body_owner):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                q = f"{prefix}{node.name}"
-                if q == target:
-                    found.append(node)
-                visit(node, q + ".<locals>.")
-            elif isinstance(node, ast.ClassDef):
-                visit(node, f"{prefix}{node.name}.")
-            elif isinstance(node, ast.Lambda):
-                if f"{prefix}<lambda>" == target and node.lineno == code.co_firstlineno:
-                    found.append(node)
-                visit(node, f"{prefix}<lambda>.<locals>.")
-            else:
-                visit(node, prefix)
-
-    visit(tree, "")
+    found = [
+        node
+        for node in _def_index(tree).get(target, ())
+        if not isinstance(node, ast.Lambda) or node.lineno == code.co_firstlineno
+    ]
     if len(found) == 1:
         return found[0]
     # Several defs with one qualname (conditional definitions): match the line.
@@ -419,6 +521,19 @@ def _find_def(tree: ast.Module, code: types.CodeType):
 
 
 def changed_ranges(old_tree, new_tree, old_code, new_code) -> list[tuple[int, int]] | None:
+    # A name that changed scope (an assignment makes a global local, a new closure cell,
+    # an added yield) changes instructions outside the edited statement: whole function.
+    # (A brand-new local name changes nothing outside the statements that use it.)
+    became_local = set(new_code.co_varnames) - set(old_code.co_varnames)
+    became_global = set(old_code.co_varnames) - set(new_code.co_varnames)
+    if (
+        became_local & set(old_code.co_names)
+        or became_global & set(new_code.co_names)
+        or old_code.co_cellvars != new_code.co_cellvars
+        or old_code.co_freevars != new_code.co_freevars
+        or old_code.co_flags != new_code.co_flags
+    ):
+        return None
     old_node = _find_def(old_tree, old_code)
     new_node = _find_def(new_tree, new_code)
     if old_node is None or new_node is None or type(old_node) is not type(new_node):

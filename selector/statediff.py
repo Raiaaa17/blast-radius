@@ -17,11 +17,14 @@ defaults, closure contents, attributes) because bytecode changes are mapped
 through line coverage instead, other objects through ``__reduce_ex__`` or
 their ``__dict__``.
 
-The build stores the pristine snapshot; at run time a child imports the
+The build stores the pristine snapshot, taken the way the run time takes one
+(a child forked from a selector-like process), with every dict slot's
+per-entry encodings in state_keys.pkl. At run time a child imports the
 patched tree, snapshots it and reports the slots that differ (added, removed
-or changed), which the selector maps to the tests that read them.
+or changed) and, for a changed dict, the entries that differ; the selector
+maps them to the tests that read those slots or entries.
 
-Usage (build): python statediff.py <sqlglot-root> <out.pkl>
+Usage (build): python statediff.py <sqlglot-root> <out.pkl>   (also writes state_keys.pkl next to it)
 """
 
 from __future__ import annotations
@@ -69,34 +72,63 @@ def class_key(cls: type) -> str:
     return f"{cls.__module__}:{cls.__qualname__}"
 
 
+_LEN = [bytes((i,)) for i in range(255)]
+_LEAF_MAX = 64  # longer scalar encodings are hashed
+
+
+def _frame(p: bytes) -> bytes:
+    n = len(p)
+    if n < 255:
+        return _LEN[n] + p
+    return b"\xff" + hashlib.blake2b(p, digest_size=16).digest()
+
+
 class Digester:
+    """Structural digests of values, stable across processes.
+
+    Scalars encode as short tagged bytes (no hashing); every container hashes
+    the framed encodings of its parts once (blake2b), so the cost is one hash
+    per container rather than one per value.
+    """
+
     def __init__(self, ordered: bool = True) -> None:
         self.ordered = ordered  # False: dicts digest order-insensitively (hash-seed dependent slots)
         self.memo: dict[int, bytes] = {}
         self.keep: list = []  # keep memoized objects alive (ids stay unique)
         self.depth = 0
+        self.strs: dict[str, bytes] = {}
 
-    def h(self, *parts: bytes) -> bytes:
-        m = hashlib.blake2b(digest_size=16)
-        for p in parts:
-            m.update(len(p).to_bytes(4, "little"))
-            m.update(p)
-        return m.digest()
+    @staticmethod
+    def h(*parts: bytes, _len=_LEN, _frame=_frame, _b2=hashlib.blake2b) -> bytes:
+        return _b2(b"".join([_len[len(p)] + p if len(p) < 255 else _frame(p) for p in parts]),
+                   digest_size=16).digest()
 
     def fp(self, v) -> bytes:
         t = type(v)
-        if v is None or t in (bool, int, float, complex):
-            return self.h(t.__name__.encode(), repr(v).encode())
         if t is str:
-            return self.h(b"str", v.encode("utf-8", "surrogatepass"))
+            got = self.strs.get(v)
+            if got is None:
+                got = b"s" + v.encode("utf-8", "surrogatepass")
+                if len(got) > _LEAF_MAX:
+                    got = b"S" + hashlib.blake2b(got, digest_size=16).digest()
+                self.strs[v] = got
+            return got
+        if v is None:
+            return b"N"
+        if t is bool:
+            return b"T" if v else b"F"
+        if t is int or t is float or t is complex:
+            got = (b"i" if t is int else b"f" if t is float else b"c") + repr(v).encode()
+            return got if len(got) <= _LEAF_MAX else b"I" + hashlib.blake2b(got, digest_size=16).digest()
         if t is bytes:
-            return self.h(b"bytes", v)
+            got = b"b" + v
+            return got if len(got) <= _LEAF_MAX else b"B" + hashlib.blake2b(got, digest_size=16).digest()
         key = id(v)
         got = self.memo.get(key)
         if got is not None:
             return got
         # Placeholder for cycles: a back reference digests as the object's type.
-        self.memo[key] = self.h(b"cycle", t.__qualname__.encode())
+        self.memo[key] = b"\x00cycle " + t.__qualname__.encode()
         self.keep.append(v)
         self.depth += 1
         try:
@@ -111,13 +143,29 @@ class Digester:
         self.memo[key] = out
         return out
 
+    def items(self, v: dict) -> list[tuple[bytes, bytes]]:
+        """(key, value) encodings of a dict, in its order."""
+        fp, strs, memo = self.fp, self.strs.get, self.memo.get
+        out = []
+        for k, x in list(v.items()):
+            kc = strs(k) if type(k) is str else None
+            xc = memo(id(x)) if type(x) is not str else strs(x)
+            out.append((kc or fp(k), xc or fp(x)))
+        return out
+
     def _fp(self, v, t) -> bytes:
         fp, h = self.fp, self.h
         if t is tuple or t is list:
             return h(t.__name__.encode(), *[fp(x) for x in v])
         if t is dict or isinstance(v, dict):
-            items = [h(fp(k), fp(x)) for k, x in list(v.items())]
-            return h(b"dict", t.__qualname__.encode(), *(items if self.ordered else sorted(items)))
+            pairs = self.items(v)
+            if self.ordered:
+                flat = [b"dict", t.__qualname__.encode()]
+                for k, x in pairs:
+                    flat.append(k)
+                    flat.append(x)
+                return h(*flat)
+            return h(b"udict", t.__qualname__.encode(), *sorted(_frame(k) + _frame(x) for k, x in pairs))
         if t is set or t is frozenset:
             return h(t.__name__.encode(), *sorted(fp(x) for x in v))
         if isinstance(v, type):
@@ -125,8 +173,19 @@ class Digester:
         if t is types.ModuleType:
             return h(b"module", v.__name__.encode())
         if isinstance(v, enum.Enum):
-            return h(b"enum", class_key(t).encode(), v.name.encode())
+            # Values too: code reads them (AutoName enums generate SQL from them). Integer
+            # values (IntEnum auto()) shift when a member is inserted; nothing reads them but
+            # hashing, so they stay out of the digest.
+            try:
+                value = v._value_
+            except AttributeError:
+                value = None
+            keep = not isinstance(value, (enum.Enum, int)) or isinstance(value, bool)
+            return h(b"enum", class_key(t).encode(), v.name.encode(), fp(value) if keep else b"")
         if t is types.FunctionType:
+            if v.__defaults__ is None and v.__kwdefaults__ is None and v.__closure__ is None and not v.__dict__:
+                return h(b"function", v.__module__.encode() if v.__module__ else b"", v.__qualname__.encode(),
+                         v.__code__.co_qualname.encode(), b"N", b"N", b"plain")
             closure = [c.cell_contents if _cell_full(c) else _EMPTY for c in (v.__closure__ or ())]
             return h(
                 b"function",
@@ -215,29 +274,38 @@ def collect_classes(modules) -> list[type]:
     return list(seen.values())
 
 
-def snapshot(root: Path, unordered: set | frozenset = frozenset()) -> dict[tuple, bytes]:
+def snapshot(root: Path, unordered: set | frozenset = frozenset(), values: dict | None = None,
+             digesters: list | None = None) -> dict[tuple, bytes]:
     """Import every sqlglot module from root (already first on sys.path) and digest all slots.
 
     Slots in `unordered` (their dict order depends on the hash seed) digest
-    dicts order-insensitively.
+    dicts order-insensitively. `values`, when given, receives each slot's
+    object (to digest a changed dict's entries afterwards); `digesters`
+    receives the (ordered, unordered) digesters, whose memos make that cheap.
     """
     modules = []
     try:
         importlib.import_module("sqlglot")
     except BaseException:  # noqa: BLE001 - nothing else can import either
         return {("M", "sqlglot", "<import failed>"): b"x"}
-    for name in iter_modules(root):
+    names = iter_modules(root)
+    for name in names:
         try:
             modules.append(importlib.import_module(name))
         except BaseException:  # noqa: BLE001 - recorded as a slot below
             pass
     d, du = Digester(), Digester(ordered=False)
+    if digesters is not None:
+        digesters[:] = [d, du]
     out: dict[tuple, bytes] = {}
+    dfp, dufp = d.fp, du.fp
 
     def put(slot, value):
-        out[slot] = (du if slot in unordered else d).fp(value)
+        out[slot] = (dufp if slot in unordered else dfp)(value)
+        if values is not None:
+            values[slot] = value
 
-    for name in iter_modules(root):
+    for name in names:
         module = sys.modules.get(name)
         if module is None:
             out[("M", name, "<import failed>")] = b"x"
@@ -246,13 +314,68 @@ def snapshot(root: Path, unordered: set | frozenset = frozenset()) -> dict[tuple
             if key in _SKIP_MODULE_NAMES:
                 continue
             put(("M", name, key), value)
-    for cls in collect_classes([sys.modules[n] for n in iter_modules(root) if n in sys.modules]):
+    for cls in collect_classes([sys.modules[n] for n in names if n in sys.modules]):
         ck = class_key(cls)
         out[("MRO", ck)] = d.h(*[class_key(c).encode() for c in cls.__mro__])
         for key, value in list(vars(cls).items()):
             if key in _SKIP_CLASS_NAMES:
                 continue
             put(("C", ck, key), value)
+    return out
+
+
+def _code_span(code: types.CodeType) -> tuple[int, int]:
+    lo = hi = code.co_firstlineno
+    stack = [code]
+    while stack:
+        c = stack.pop()
+        for _, _, line in c.co_lines():
+            if line is not None:
+                lo, hi = min(lo, line), max(hi, line)
+        stack.extend(k for k in c.co_consts if isinstance(k, types.CodeType))
+    return lo, hi
+
+
+def callable_ranges(values: dict, root: Path) -> dict[tuple, list[tuple[str, int, int]]]:
+    """Class-attribute slots holding functions (plain, classmethod, staticmethod, property parts):
+    the files and line spans of the code a call of the value runs first."""
+    prefix = str(root) + os.sep
+    out = {}
+    for slot, value in values.items():
+        if slot[0] != "C":
+            continue
+        funcs = []
+        if isinstance(value, types.FunctionType):
+            funcs = [value]
+        elif isinstance(value, (classmethod, staticmethod)) and isinstance(value.__func__, types.FunctionType):
+            funcs = [value.__func__]
+        elif isinstance(value, property):
+            funcs = [f for f in (value.fget, value.fset, value.fdel) if f is not None]
+            if not all(isinstance(f, types.FunctionType) for f in funcs):
+                continue
+        if not funcs:
+            continue
+        spans = []
+        for f in funcs:
+            code = f.__code__
+            if not code.co_filename.startswith(prefix):
+                spans = None
+                break
+            lo, hi = _code_span(code)
+            spans.append((code.co_filename[len(prefix):], lo, hi))
+        if spans:
+            out[slot] = spans
+    return out
+
+
+def dict_keys_of(values: dict, digesters: list, unordered, slots=None) -> dict[tuple, dict[bytes, bytes]]:
+    """Per-entry encodings {key: value} of every dict-valued slot (or of `slots`)."""
+    d, du = digesters
+    out = {}
+    for slot in (values if slots is None else slots):
+        value = values.get(slot)
+        if isinstance(value, dict) and not isinstance(value, type):
+            out[slot] = dict((du if slot in unordered else d).items(value))
     return out
 
 
@@ -289,7 +412,7 @@ def main() -> None:
         _worker(Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4] if len(sys.argv) > 4 else "")
         return
     if sys.argv[1] == "--forks":
-        _forks(Path(sys.argv[2]), sys.argv[3])
+        _forks(Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4]))
         return
     root, out = Path(sys.argv[1]), Path(sys.argv[2])
     tmp = out.parent
@@ -318,49 +441,113 @@ def main() -> None:
     unstable = set()
     for other in again[1:]:
         unstable |= set(diff(again[0]["slots"], other["slots"]))
-    # Forked children of one process (the run-time setting) must agree too.
+    # The run-time setting: children forked from a selector-like process, the
+    # tree a symlink farm in a temporary directory. They must agree with each
+    # other and with the reference stored here; the reference is one of them.
+    keys_file = tmp / "state_keys.pkl"
     forks = subprocess.run(
-        [sys.executable, str(Path(__file__).resolve()), "--forks", str(root), str(ufile)],
+        [sys.executable, str(Path(__file__).resolve()), "--forks", str(root), str(ufile), str(keys_file)],
         check=True, env={**os.environ, "PYTHONHASHSEED": "4"}, capture_output=True,
     )
-    unstable |= pickle.loads(forks.stdout)
+    got = pickle.loads(forks.stdout)
+    unstable |= got["unstable"]
+    unstable |= set(diff(again[0]["slots"], got["slots"]))
     ufile.unlink()
     with open(out, "wb") as handle:
-        pickle.dump({"slots": again[0]["slots"], "unordered": unordered, "unstable": unstable,
-                     "mro": again[0]["mro"]}, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    print(f"[state] {len(again[0]['slots'])} slots; {len(unordered)} hash-seed ordered; unstable {len(unstable)}: "
-          f"{sorted(unstable)[:8]}", file=sys.stderr)
+        pickle.dump({"slots": got["slots"], "unordered": unordered, "unstable": unstable,
+                     "mro": again[0]["mro"], "dict_slots": got["dict_slots"], "callables": got["callables"],
+                     "untraced": got["untraced"], "enums": got["enums"]},
+                    handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print(f"[state] {len(got['slots'])} slots ({len(got['dict_slots'])} dicts); {len(unordered)} hash-seed ordered; "
+          f"unstable {len(unstable)}: {sorted(unstable)[:8]}", file=sys.stderr)
 
 
-def _forks(root: Path, unordered_file: str) -> None:
+def _forks(root: Path, unordered_file: str, keys_file: Path) -> None:
+    """Snapshots as the selector takes them at run time; prints the reference and the unstable slots."""
     import pickle
+    import tempfile
 
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import zygote
+    here = str(Path(__file__).resolve().parent)
+    sys.path.insert(0, here)
+    # Modules the run-time selector has imported before it forks these children.
+    import ast  # noqa: F401
+    import difflib  # noqa: F401
+    import importlib.util  # noqa: F401
+    import json  # noqa: F401
+    import resource  # noqa: F401
+    import select  # noqa: F401
+    import signal  # noqa: F401
 
-    zygote.warm_third_party()
+    import verify
+
     with open(unordered_file, "rb") as handle:
         unordered = pickle.load(handle)
-    snaps = run_snapshots([(str(i), root) for i in range(3)], unordered, parallel=1, timeout_s=120)
+    with tempfile.TemporaryDirectory() as tmp:
+        farm = Path(tmp) / "farm"
+        verify.build_tree(root, farm, {})
+        jobs = [("0", root), ("1", root), ("farm", farm)]
+        snaps = run_snapshots(jobs, unordered, parallel=1, timeout_s=120, raw=True)
     unstable = set()
-    for i in (1, 2):
-        if snaps["0"] is None or snaps[str(i)] is None:
+    for key in ("1", "farm"):
+        if snaps["0"] is None or snaps[key] is None:
             raise SystemExit("snapshot child failed")
-        unstable |= set(diff(snaps["0"], snaps[str(i)]))
-    sys.stdout.buffer.write(pickle.dumps(unstable))
-
-
+        unstable |= set(diff(snaps["0"]["slots"], snaps[key]["slots"]))
+    with open(keys_file, "wb") as handle:
+        pickle.dump(snaps["0"]["keys"], handle, protocol=pickle.HIGHEST_PROTOCOL)
+    sys.stdout.buffer.write(pickle.dumps({"slots": snaps["0"]["slots"], "unstable": unstable,
+                                          "dict_slots": set(snaps["0"]["keys"]),
+                                          "callables": snaps["0"]["callables"],
+                                          "untraced": snaps["0"]["untraced"],
+                                          "enums": snaps["0"]["enums"]}))
 
 
 # ---------------------------------------------------------------- run time
 
+def _child_result(root: Path, unordered, base: dict | None, keys_file: Path | None, raw: bool) -> dict:
+    """What a snapshot child reports: the slots that differ from `base` (and, for
+    changed dicts, which entries), or (raw) the whole snapshot with entry encodings."""
+    values: dict = {}
+    digesters: list = []
+    snap = snapshot(root, unordered, values=values, digesters=digesters)
+    if raw:
+        keys = dict_keys_of(values, digesters, unordered) if digesters else {}
+        # Classes the map builder's recorders skip (their attribute reads are not recorded).
+        classes = collect_classes([sys.modules[n] for n in iter_modules(root) if n in sys.modules])
+        untraced = {class_key(c) for c in classes if issubclass(c, (enum.Enum, tuple, BaseException))}
+        enums = {class_key(c) for c in classes if issubclass(c, enum.Enum)}
+        return {"slots": snap, "keys": keys, "callables": callable_ranges(values, root), "untraced": untraced,
+                "enums": enums}
+    if base is None:
+        return {"slots": snap}
+    changed = diff(base["slots"], snap)
+    entries: dict[tuple, list] = {}
+    dict_changed = [s for s in changed if s in base.get("dict_slots", ()) and isinstance(values.get(s), dict)]
+    if dict_changed and keys_file is not None and digesters:
+        import pickle
+
+        try:
+            with open(keys_file, "rb") as handle:
+                old_keys = pickle.load(handle)
+        except OSError:
+            old_keys = {}
+        new_keys = dict_keys_of(values, digesters, unordered, dict_changed)
+        for slot in dict_changed:
+            old, new = old_keys.get(slot), new_keys.get(slot)
+            if old is None or new is None:
+                continue
+            entries[slot] = [k for k in old.keys() | new.keys() if old.get(k) != new.get(k)]
+    return {"changed": changed, "entries": entries, "removed": [k for k in base["slots"] if k not in snap]}
+
+
 def run_snapshots(jobs: list[tuple[str, Path]], unordered: set, parallel: int = 2,
-                  timeout_s: float = 20.0, log=None) -> dict[str, dict | None]:
-    """jobs: (key, tree root). Returns key -> snapshot of that tree (None: failed).
+                  timeout_s: float = 20.0, log=None, base: dict | None = None,
+                  keys_file: Path | None = None, raw: bool = False) -> dict[str, dict | None]:
+    """jobs: (key, tree root). Returns key -> result (None: failed).
 
     Each child is forked from the calling process (which must not have sqlglot
-    imported) and imports the tree, so a pristine job and patched jobs see the
-    same environment and differ only by the patch.
+    imported) and imports the tree. With `base` (the build's pristine reference,
+    taken the same way) a child reports {"changed": slots, "entries": {dict slot:
+    changed entry keys}}; without it, {"slots": full snapshot}.
     """
     import pickle
     import select
@@ -383,7 +570,8 @@ def run_snapshots(jobs: list[tuple[str, Path]], unordered: set, parallel: int = 
                         os.dup2(devnull, fd)
                     sys.path.insert(0, str(root))
                     os.chdir(root)
-                    data = pickle.dumps(snapshot(Path(root), unordered), protocol=pickle.HIGHEST_PROTOCOL)
+                    result = _child_result(Path(root), unordered, base, keys_file, raw)
+                    data = pickle.dumps(result, protocol=pickle.HIGHEST_PROTOCOL)
                     view = memoryview(data)
                     while view:
                         n = os.write(w, view)

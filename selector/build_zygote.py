@@ -115,6 +115,13 @@ def main() -> None:
     warm = zygote.Warm(src)
     warm.load(modules)
     patches = identity_patches(warm, src)
+    # What the pristine suite changes in sqlglot's state by itself (the sentinel ignores it).
+    import sentinel
+
+    zygote._import_all_sqlglot(src)
+    zygote.SENTINEL_BASE = sentinel.fingerprint()
+    zygote.SENTINEL_VOLATILE = {}
+    zygote.SENTINEL_KEYS = out / "state_keys.pkl" if (out / "state_keys.pkl").exists() else None
     print(
         f"[zygote] warm: {len(warm.import_keys)} code objects ran at import, {len(warm.functions)} live "
         f"function codes, {len(patches)} identity patches, failed imports {sorted(warm.failed_imports)}",
@@ -134,7 +141,8 @@ def main() -> None:
     job_list = []
     for i, shard in enumerate(s for s in shards if s):
         job_list.append(
-            zygote.Job(f"shard{i}", shard, [max(120.0, 6 * traced[t]) for t in shard], "hot", src, patches=patches)
+            zygote.Job(f"shard{i}", shard, [max(120.0, 6 * traced[t]) for t in shard], "hot", src, patches=patches,
+                       sentinel=True)
         )
     zygote.run_jobs(job_list, parallel=jobs, deadline=time.monotonic() + 480.0, log=lambda m: print(m, file=sys.stderr))
     timing: dict[str, tuple[str, float]] = {}
@@ -144,7 +152,12 @@ def main() -> None:
             timing[tid] = (status, job.cpu.get(tid, traced.get(tid, 1.0)))
         for cls, cpu in job.class_cpu.items():
             class_cpu[cls] = max(class_cpu.get(cls, 0.0), cpu)
+    volatile: dict = {}
+    for job in job_list:
+        for slot, kind in sentinel.classify(job.polluted or {}).items():
+            volatile[slot] = "full" if "full" in (kind, volatile.get(slot)) else kind
     data = {
+        "volatile": volatile,
         "import_keys": {(os.path.relpath(f, src), q, n) for f, q, n in warm.import_keys},
         "timing": timing,
         "class_cpu": class_cpu,
@@ -157,7 +170,8 @@ def main() -> None:
     total = sum(c for _, c in timing.values())
     print(
         f"[zygote] {len(timing)} tests, {total:.1f} cpu-s, {sum(class_cpu.values()):.1f} fixture cpu-s, "
-        f"{time.perf_counter() - started:.1f}s wall; not passing: {bad}; no verdict: {missing}",
+        f"{time.perf_counter() - started:.1f}s wall; not passing: {bad}; no verdict: {missing}; "
+        f"{len(volatile)} slots changed by the pristine suite: {sorted(volatile)[:10]}",
         file=sys.stderr,
     )
 

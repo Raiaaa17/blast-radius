@@ -29,6 +29,8 @@ class FileDiff:
     binary: bool = False
     mode_change: bool = False
     rename: bool = False
+    copy: bool = False  # the old file stays; new_path is a copy of it (with the hunks applied)
+    new_mode: str = ""
 
     @property
     def path(self) -> str:
@@ -119,16 +121,25 @@ def parse(data: bytes) -> list[FileDiff]:
             current.new_path = _strip_prefix(line[4:]) or None
         elif line.startswith(b"new file mode"):
             current.old_path = None
+            current.new_mode = line[len(b"new file mode ") :].decode().strip()
         elif line.startswith(b"deleted file mode"):
             current.new_path = None
         elif line.startswith((b"old mode", b"new mode")):
             current.mode_change = True
+            if line.startswith(b"new mode "):
+                current.new_mode = line[len(b"new mode ") :].decode().strip()
         elif line.startswith((b"rename from", b"rename to", b"copy from", b"copy to", b"similarity index")):
             current.rename = True
             if line.startswith(b"rename from "):
                 current.old_path = line[len(b"rename from ") :].decode("utf-8", "surrogateescape")
             elif line.startswith(b"rename to "):
                 current.new_path = line[len(b"rename to ") :].decode("utf-8", "surrogateescape")
+            elif line.startswith(b"copy from "):
+                current.copy = True
+                current.old_path = line[len(b"copy from ") :].decode("utf-8", "surrogateescape")
+            elif line.startswith(b"copy to "):
+                current.copy = True
+                current.new_path = line[len(b"copy to ") :].decode("utf-8", "surrogateescape")
         elif line.startswith((b"Binary files", b"GIT binary patch")):
             current.binary = True
     if hunk is not None and (old_left > 0 or new_left > 0):
