@@ -33,6 +33,7 @@ import queue
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -316,6 +317,7 @@ def main() -> int:
     todo = [item[-1] for item in sorted(order)]
     log(f"{len(patches)} patches, {len(todo)} to label, {args.jobs} jobs")
 
+    answers_lock = threading.Lock()
     slots: queue.Queue = queue.Queue()
     cpus = [c for c in args.cpuset.split(",") if c]
     for index in range(args.jobs):
@@ -328,6 +330,8 @@ def main() -> int:
         finally:
             slots.put(cpu)
         (labels_dir / f"{patch.stem}.json").write_text(json.dumps(detail, indent=1))
+        with answers_lock:  # keep answers.json current so a partial corpus is usable
+            write_answers(args.corpus, labels_dir)
         status = detail.get("apply_error") and "APPLY-ERROR" or f"{len(detail['failing'])} failing"
         log(f"{patch.stem} [{detail['kind']}] {status} wall={detail.get('wall', 0):.0f}s")
         return patch.stem
@@ -337,6 +341,7 @@ def main() -> int:
             future.result()
 
     write_answers(args.corpus, labels_dir)
+    log("labeling finished")
     return 0
 
 
@@ -350,8 +355,10 @@ def write_answers(corpus: Path, labels_dir: Path) -> None:
             continue
         commits[detail["commit"]] = {"failing": detail["failing"], "kind": detail["kind"]}
     name = "answers.json" if labels_dir.name == "labels" else f"answers-{labels_dir.name}.json"
-    (corpus / name).write_text(json.dumps({"commits": commits}, indent=1) + "\n")
-    log(f"answers.json: {len(commits)} labeled commits")
+    target = corpus / name
+    temporary = target.with_suffix(".tmp")
+    temporary.write_text(json.dumps({"commits": commits}, indent=1) + "\n")
+    temporary.replace(target)  # atomic: readers never see a half-written file
 
 
 if __name__ == "__main__":
