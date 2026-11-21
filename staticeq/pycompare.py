@@ -196,6 +196,40 @@ class _Fingerprints:
 _FP = _Fingerprints()
 
 
+def _annotation_masked(node) -> tuple:
+    """Fingerprint with function-signature annotations (parameter annotations
+    and return annotations of def/async def) replaced by a placeholder."""
+    if isinstance(node, list):
+        return ("[]",) + tuple(_annotation_masked(x) for x in node)
+    if not isinstance(node, ast.AST):
+        return _const_key(node)
+    if isinstance(node, ast.arg):
+        return ("arg", node.arg, "<annotation>")
+    parts = [type(node).__name__]
+    for f in node._fields:
+        if f == "returns" and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            parts.append("<annotation>")
+        else:
+            parts.append(_annotation_masked(getattr(node, f, None)))
+    return tuple(parts)
+
+
+_FUTURE_ANNOTATIONS = 0x1000000  # __future__.annotations.compiler_flag / CO_FUTURE_ANNOTATIONS
+
+
+def annotation_only(old_body: list, new_body: list) -> bool:
+    """True when the statement lists differ only in def signature annotations.
+
+    Under ``from __future__ import annotations`` those are stored as strings
+    in ``__annotations__`` and never evaluated; nothing in sqlglot or its
+    tests reads function annotations (no get_type_hints/singledispatch; the
+    inspect.signature/getfullargspec callers use parameter names only).
+    Class- and module-level variable annotations are NOT masked: dataclasses,
+    NamedTuple and TypedDict read those.
+    """
+    return _annotation_masked(old_body) == _annotation_masked(new_body)
+
+
 def _reset_fp() -> None:
     _FP.memo.clear()
     _FP.keep.clear()
@@ -523,6 +557,9 @@ def compare_sources(old: bytes, new: bytes, file: str, module: str | None) -> Fi
     differ.diff_body(to.body, tn.body, _Ctx("module", "", None, None))
     if not warn_units and not differ.units:
         return FileVerdict(True, "ast-equal")
+    if (not warn_units and co.code.co_flags & cn.code.co_flags & _FUTURE_ANNOTATIONS
+            and annotation_only(to.body, tn.body)):
+        return FileVerdict(True, "annotation-only", reasons=[f"{file}: only def annotations changed"])
     return _finish(differ, warn_units, file, module, "file")
 
 
@@ -572,4 +609,7 @@ def compare_chunk(old_src: bytes, new_src: bytes, file: str, module: str | None,
     differ.diff_body(body_o, body_n, ctx, docstrings=docstrings)
     if not warn_units and not differ.units:
         return FileVerdict(True, "ast-equal", mode="chunk")
+    if not warn_units and flags & _FUTURE_ANNOTATIONS and annotation_only(body_o, body_n):
+        return FileVerdict(True, "annotation-only", reasons=[f"{file}: only def annotations changed"],
+                           mode="chunk")
     return _finish(differ, warn_units, file, module, "chunk")

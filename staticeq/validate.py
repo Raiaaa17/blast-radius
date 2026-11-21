@@ -110,6 +110,15 @@ def mutate(text: str, kind: str, rng: random.Random) -> str | None:
                 lines[d.lineno - 1] = line[: pos + len(q)] + "Reworded. " + line[pos + len(q):]
                 return "\n".join(lines)
         return None
+    if kind == "annotation":
+        cands = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                 and n.returns is not None and n.returns.lineno == n.returns.end_lineno and n.lineno > 2]
+        if not cands:
+            return None
+        node = rng.choice(cands).returns
+        line = lines[node.lineno - 1]
+        lines[node.lineno - 1] = line[: node.col_offset] + "t.Any" + line[node.end_col_offset:]
+        return "\n".join(lines)
     if kind == "code":
         cands = []
         for node in ast.walk(tree):
@@ -147,7 +156,7 @@ def main(argv=None) -> int:
     ap.add_argument("--segments", default=None)
     ap.add_argument("--n", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=1)
-    ap.add_argument("--kinds", default="comment,inline,blank,docstring,code")
+    ap.add_argument("--kinds", default="comment,inline,blank,docstring,code,annotation")
     args = ap.parse_args(argv)
     seg = load_index(args.segments)
     if seg is None:
@@ -163,7 +172,7 @@ def main(argv=None) -> int:
                 files.append(rel)
     kinds = args.kinds.split(",")
     expect = {"comment": "neutral", "inline": "neutral", "blank": "neutral",
-              "docstring": "docstring-only", "code": "changed"}
+              "docstring": "docstring-only", "code": "changed", "annotation": "neutral"}
     stats: Counter = Counter()
     bad: list = []
     cpu_chunk = cpu_whole = 0.0
@@ -197,6 +206,9 @@ def main(argv=None) -> int:
         if a["neutral"] != b["neutral"] or ua != ub or fa.get("level") != fb.get("level"):
             bad.append({"why": "chunk/whole disagree", "kind": kind, "file": rel, "a": (a["neutral"], la, ua),
                         "b": (b["neutral"], fb.get("level"), ub), "diff": diff[:1500]})
+        elif kind == "annotation" and "from __future__ import annotations" not in old:
+            if got == "neutral":
+                bad.append({"why": "annotation edit without future import called neutral", "file": rel})
         elif got != expect[kind] and not (kind == "code" and got != "neutral"):
             bad.append({"why": f"expected {expect[kind]} got {got}", "kind": kind, "file": rel,
                         "reasons": a["reasons"], "diff": diff[:1500]})

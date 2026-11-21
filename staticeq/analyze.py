@@ -276,6 +276,8 @@ def _analyze_file(fp: FilePatch, root: str, dm: DataMap | None, docstrings_neutr
         if line_or_doc_only and not guarded and (not src_ids or code_level_readers):
             why = {"code-equal": "code objects equal modulo line numbers",
                    "ast-equal": "ASTs equal modulo positions",
+                   "annotation-only": "only def annotations changed under "
+                                      "'from __future__ import annotations' (never evaluated)",
                    "docstring-only": "only docstrings changed; nothing reads __doc__"}[verdict.level]
             entry.update(kind="python", level=verdict.level, neutral=True, reason=why)
             return

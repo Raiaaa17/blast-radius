@@ -27,7 +27,8 @@ if verdict["neutral"]:
      "kind": "python",              // python | python-unused | data | data-unused | config |
                                     // structural-{added,deleted,rename,copy,binary,mode} |
                                     // unparsed | unapplied | missing | no-op | error
-     "level": "changed",            // python: code-equal | ast-equal | docstring-only | changed | error
+     "level": "changed",            // python: code-equal | ast-equal | docstring-only |
+                                    //         annotation-only | changed | error
      "mode": "chunk",               // python: chunk (segment-level) or file (whole file)
      "neutral": false, "reason": "..."}
   ],
@@ -96,20 +97,30 @@ A file is neutral when one of these holds:
      `typing_guard` checks that no child/parent annotator pair is equal
      modulo docstrings and line tables (100 pairs at the pinned commit, none
      equal), so such an edit cannot make that test find a redundant entry.
-3. **Python file nothing uses.** The file is never imported and never read by
+3. **Python, signature-annotation-only**: the only difference is in def
+   parameter or return annotations, and both versions have
+   `from __future__ import annotations`. Under that import the annotations
+   are strings that are never evaluated. Nothing in sqlglot or its tests reads
+   function annotations: there is no `get_type_hints` or `singledispatch`,
+   and the `inspect.signature` and `getfullargspec` callers use parameter
+   names only. Class- and module-level variable annotations are *not*
+   covered, because dataclasses, NamedTuple and TypedDict read those.
+   Annotations on local variables are never evaluated and already compile
+   identically.
+4. **Python file nothing uses.** The file is never imported and never read by
    any test during the traced run, for example `setup.py`, `benchmarks/*`,
    `tests/gen_fixtures.py`, `tests/leakcheck.py` or `sqlglot/__main__.py`.
    This needs the file map.
-4. **Data file nothing reads.** No test opened it during the traced run and
+5. **Data file nothing reads.** No test opened it during the traced run and
    no test source names it literally (examples: README.md, CHANGELOG.md,
    posts/, pdoc/). Needs the file map.
-5. **SQL fixture, comment or blank lines only.** Every test that reads the
+6. **SQL fixture, comment or blank lines only.** Every test that reads the
    file does so through `tests/helpers.py` `load_sql_fixtures` or
    `load_sql_fixture_pairs`, both of which run `_filter_comments`. This rule
    checks that `_filter_comments(old) == _filter_comments(new)`, so whole
    `--` comment lines and empty lines pass. Inline `-- x` comments,
    whitespace-only lines and `#` meta lines do not.
-6. **Root `pyproject.toml` / `setup.cfg`**: only when neither version has a
+7. **Root `pyproject.toml` / `setup.cfg`**: only when neither version has a
    pytest section, the new one still parses, and no test reads it.
 
 The following are never neutral: `conftest.py`, `pytest.ini`, `tox.ini`,
@@ -146,10 +157,10 @@ Anything that doesn't fit falls back to whole-file comparison:
 - a chunk that doesn't compile on its own
 
 `python -m staticeq.validate` mutates the real tree at random (comments,
-inline comments, blank lines, docstrings, operators and constants) and
-checks that chunk mode and whole-file mode agree. On 1500 mutations there
-were 0 disagreements and 0 wrong verdicts. It cost 2.7 ms per patch in chunk
-mode against 19 ms whole-file.
+inline comments, blank lines, docstrings, def annotations, operators and
+constants) and checks that chunk mode and whole-file mode agree. Over two
+seeds and 3000 mutations there were 0 disagreements and 0 wrong verdicts.
+It cost 2.7-4 ms per patch in chunk mode against 19-34 ms whole-file.
 
 ## File map (`data/filemap.json`, committed, about 170 KB)
 

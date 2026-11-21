@@ -86,6 +86,8 @@ class Tree:
             "README.md": "# readme\n",
             "pyproject.toml": "[project]\nname = 'x'\n",
             "benchmarks/bench.py": "print('bench')\n",
+            "sqlglot/plain.py": "import typing as t\n\n\ndef f(x: int) -> int:\n    return x\n\n\n"
+                                "class C:\n    v: int = 1\n",
         }
         for rel, text in self.files.items():
             full = os.path.join(self.root, rel)
@@ -104,7 +106,8 @@ class Tree:
             "source_reads": {},
             "listdirs": {"tests/fixtures": {"tests": [1], "readers": ["tests/test_mod.py:x"]}},
             "missing_imports": {"sqlglot.newmod": [0]},
-            "imported": ["sqlglot/mod.py", "sqlglot/__init__.py", "tests/helpers.py", "tests/test_mod.py"],
+            "imported": ["sqlglot/mod.py", "sqlglot/__init__.py", "sqlglot/plain.py", "tests/helpers.py",
+                         "tests/test_mod.py"],
             "all_tests_reads": [],
             "mentions": {},
             "typing_guard": {"ok": True, "sensitive_files": []},
@@ -255,6 +258,33 @@ class TestNeutral(unittest.TestCase):
     def test_no_map_still_proves_code(self):
         new = edit(MODULE, "    total = a + b\n", "    # explain\n    total = a + b\n")
         self.assertTrue(T.run(self.P, new, data_map=None)["neutral"])
+
+
+class TestAnnotations(unittest.TestCase):
+    def test_signature_annotations_under_future_import(self):
+        new = edit(MODULE, "def helper(a, b=2):", "def helper(a: int, b: int = 2) -> int:")
+        r = T.both("sqlglot/mod.py", new)
+        self.assertTrue(r["neutral"], r["reasons"])
+        self.assertEqual(r["files"][0]["level"], "annotation-only")
+        new = edit(MODULE, "    def method(self, value):\n        return value + 1",
+                   "    def method(self, value: Base) -> str:\n        return value + 1")
+        self.assertTrue(T.both("sqlglot/mod.py", new)["neutral"])
+
+    def test_annotations_without_future_import_are_evaluated(self):
+        new = edit(T.files["sqlglot/plain.py"], "def f(x: int) -> int:", "def f(x: str) -> int:")
+        r = T.both("sqlglot/plain.py", new)
+        self.assertFalse(r["neutral"])
+        self.assertEqual(units(r), [("f", "header")])
+
+    def test_class_variable_annotation_is_not_masked(self):
+        new = edit(MODULE, '    KEY = "base"\n', '    KEY: str = "base"\n')
+        self.assertFalse(T.both("sqlglot/mod.py", new)["neutral"])
+
+    def test_annotation_plus_default_change(self):
+        new = edit(MODULE, "def helper(a, b=2):", "def helper(a: int, b: int = 3):")
+        r = T.both("sqlglot/mod.py", new)
+        self.assertFalse(r["neutral"])
+        self.assertEqual(units(r), [("helper", "header")])
 
 
 class TestUnits(unittest.TestCase):
