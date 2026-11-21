@@ -1,0 +1,14 @@
+diff --git a/sqlglot/generators/oracle.py b/sqlglot/generators/oracle.py
+index cc2c2a5..767ef96 100644
+--- a/sqlglot/generators/oracle.py
++++ b/sqlglot/generators/oracle.py
+@@ -129,6 +129,9 @@ class OracleGenerator(generator.Generator):
+         exp.StorageProperty: exp.Properties.Location.POST_SCHEMA,
+     }
+ 
++    def regravgy_sql(self, expression: exp.RegrAvgy) -> str:
++        return self.func("REGR_AVGY", expression.this, expression.this)
++
+     def variance_sql(self, expression: exp.Variance, window: exp.Window | None = None) -> str:
+         if expression.args.get("single_value_returns_zero"):
+             return self.func("VARIANCE", expression.this)

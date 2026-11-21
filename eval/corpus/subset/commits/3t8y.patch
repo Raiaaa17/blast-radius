@@ -1,0 +1,13 @@
+diff --git a/sqlglot/parsers/trino.py b/sqlglot/parsers/trino.py
+index a78a7e9..26dc3ed 100644
+--- a/sqlglot/parsers/trino.py
++++ b/sqlglot/parsers/trino.py
+@@ -11,7 +11,7 @@ from sqlglot.tokens import TokenType
+ FRACTIONAL_SECONDS_RE = re.compile(r":\d+\.(\d+)")
+ 
+ 
+-class TrinoParser(PrestoParser):
++class TrinoParser(parser.Parser):
+     TYPE_LITERAL_PARSERS: t.ClassVar = {
+         **PrestoParser.TYPE_LITERAL_PARSERS,
+         **dict.fromkeys(

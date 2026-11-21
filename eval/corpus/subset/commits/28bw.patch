@@ -1,0 +1,13 @@
+diff --git a/sqlglot/generators/mysql.py b/sqlglot/generators/mysql.py
+index 91c1fef..145228a 100644
+--- a/sqlglot/generators/mysql.py
++++ b/sqlglot/generators/mysql.py
+@@ -836,7 +836,7 @@ class MySQLGenerator(generator.Generator):
+         self.unsupported("AT TIME ZONE is not supported by MySQL")
+         return self.sql(expression.this)
+ 
+-    def isascii_sql(self, expression: exp.IsAscii) -> str:
++    def isascii_sql2(self, expression: exp.IsAscii) -> str:
+         return f"REGEXP_LIKE({self.sql(expression.this)}, '^[[:ascii:]]*$')"
+ 
+     def ignorenulls_sql(self, expression: exp.IgnoreNulls) -> str:

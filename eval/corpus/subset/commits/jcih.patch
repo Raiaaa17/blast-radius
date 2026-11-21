@@ -1,0 +1,12 @@
+diff --git a/tests/fixtures/optimizer/canonicalize_internal_names.sql b/tests/fixtures/optimizer/canonicalize_internal_names.sql
+index 1df162d..7f050c0 100644
+--- a/tests/fixtures/optimizer/canonicalize_internal_names.sql
++++ b/tests/fixtures/optimizer/canonicalize_internal_names.sql
+@@ -216,6 +216,7 @@ WITH "_t2" AS (SELECT "_t1"."a" AS "_c1", (SELECT MAX("_t0"."c") AS "_c0" FROM "
+ 
+ # title: distinct on
+ # dialect: postgres
++
+ SELECT DISTINCT ON (a) a, b FROM x;
+ SELECT DISTINCT ON ("a") "_t0"."a" AS "a", "_t0"."b" AS "b" FROM "c"."db"."x" AS "_t0";
+ 

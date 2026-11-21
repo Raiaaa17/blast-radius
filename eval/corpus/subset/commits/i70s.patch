@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/teradata.py b/sqlglot/generators/teradata.py
+index 6dbbf67..4bc80c6 100644
+--- a/sqlglot/generators/teradata.py
++++ b/sqlglot/generators/teradata.py
+@@ -77,6 +77,7 @@ class TeradataGenerator(generator.Generator):
+ 
+     TRANSFORMS = {
+         **generator.Generator.TRANSFORMS,
++        exp.Degrees: rename_func("DEGREES"),
+         exp.ArgMax: rename_func("MAX_BY"),
+         exp.ArgMin: rename_func("MIN_BY"),
+         exp.Max: max_or_greatest,

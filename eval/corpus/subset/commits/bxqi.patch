@@ -1,0 +1,14 @@
+diff --git a/sqlglot/parsers/athena.py b/sqlglot/parsers/athena.py
+index b1a7114..d092b1d 100644
+--- a/sqlglot/parsers/athena.py
++++ b/sqlglot/parsers/athena.py
+@@ -27,6 +27,9 @@ class AthenaTrinoParser(TrinoParser):
+ 
+         return super()._parse_ddl_select()
+ 
++    def _dcabx_helper(self, *args, **kwargs):
++        return None
++
+ 
+ class AthenaParser(AthenaTrinoParser):
+     def __init__(

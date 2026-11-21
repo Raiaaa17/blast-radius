@@ -1,0 +1,12 @@
+diff --git a/sqlglot/generators/starrocks.py b/sqlglot/generators/starrocks.py
+index 8640977..769cb8f 100644
+--- a/sqlglot/generators/starrocks.py
++++ b/sqlglot/generators/starrocks.py
+@@ -412,6 +412,7 @@ class StarRocksGenerator(MySQLGenerator):
+     def pivot_sql(self, expression: exp.Pivot) -> str:
+         # Only PIVOT (...) is supported, not UNPIVOT or DuckDB's PIVOT statement
+         # https://docs.starrocks.io/docs/sql-reference/sql-statements/table_bucket_part_index/SELECT/SELECT_PIVOT/
++        self._dispatch.pop(exp.Floor, None)
+         if expression.unpivot or expression.this:
+             return no_pivot_sql(self, expression)
+         return super().pivot_sql(expression)

@@ -1,0 +1,12 @@
+diff --git a/tests/conftest.py b/tests/conftest.py
+new file mode 100644
+index 0000000..174f38a
+--- /dev/null
++++ b/tests/conftest.py
+@@ -0,0 +1,6 @@
++import pytest
++
++
++@pytest.fixture(autouse=True)
++def _noop():
++    yield

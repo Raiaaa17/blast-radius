@@ -1,0 +1,13 @@
+diff --git a/sqlglotc/setup.py b/sqlglotc/setup.py
+index a9a97d1..a2800bc 100644
+--- a/sqlglotc/setup.py
++++ b/sqlglotc/setup.py
+@@ -178,7 +178,7 @@ def _sqlglot_requirement():
+ 
+     # Dev and fallback (no git metadata) builds have no matching sqlglot release on PyPI;
+     # depend on sqlglot unpinned since the extensions can't be imported without it.
+-    if version in ("", "0.0.0") or ".dev" in version:
++    if version in ("", "0.0.0") or ".dev" not in version:
+         return ["sqlglot"]
+ 
+     return [f"sqlglot=={version}"]

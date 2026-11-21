@@ -27,6 +27,13 @@
   ],
   "kind": "table:class-modify"
  },
+ "08s5": {
+  "desc": "sqlglot/expressions/string.py:93 True -> False",
+  "files": [
+   "sqlglot/expressions/string.py"
+  ],
+  "kind": "code:constant"
+ },
  "0aql": {
   "desc": "sqlglot/typing/redshift.py:24 128 -> 127",
   "files": [
@@ -40,6 +47,13 @@
    "tests/dialects/test_mysql.py"
   ],
   "kind": "test:syntax"
+ },
+ "0br3": {
+  "desc": "sqlglot/parsers/dremio.py DremioParser.FUNCTIONS += \"STRFTIME\": exp.CurrentTimestamp.from_arg_list",
+  "files": [
+   "sqlglot/parsers/dremio.py"
+  ],
+  "kind": "dispatch:add-parser-function"
  },
  "0bwx": {
   "desc": "rename sqlglot/expressions/aggregate.py -> sqlglot/expressions/aggregate_old.py",
@@ -55,6 +69,13 @@
    "tests/fixtures/optimizer/optimize_joins.sql"
   ],
   "kind": "fixture:modify"
+ },
+ "0f9s": {
+  "desc": "[op_compare] sqlglotc/setup.py:39 `!=` -> `==`",
+  "files": [
+   "sqlglotc/setup.py"
+  ],
+  "kind": "outside:executed"
  },
  "0fwh": {
   "desc": "tests/dialects/test_sqlite.py:116 comment line inside a string literal",
@@ -114,6 +135,13 @@
   ],
   "kind": "file:mode"
  },
+ "14hb": {
+  "desc": "sqlglot/parsers/hive.py:318 rename method _parse_parameter -> _parse_parameter_impl (1 references in the file)",
+  "files": [
+   "sqlglot/parsers/hive.py"
+  ],
+  "kind": "refactor:rename-method"
+ },
  "1861": {
   "desc": "sqlglot/parser.py:3656 comment-only edit",
   "files": [
@@ -135,12 +163,40 @@
   ],
   "kind": "file:add-src"
  },
+ "1dtm": {
+  "desc": "sqlglot/parsers/drill.py DrillParser.FUNCTIONS += \"PIVOT\": exp.ApproxTopKAccumulate.from_arg_list",
+  "files": [
+   "sqlglot/parsers/drill.py"
+  ],
+  "kind": "dispatch:add-parser-function"
+ },
  "1ern": {
   "desc": "sqlglot/expressions/datatypes.py import of a module that does not exist",
   "files": [
    "sqlglot/expressions/datatypes.py"
   ],
   "kind": "import:missing"
+ },
+ "1fnv": {
+  "desc": "sqlglot/parsers/mysql.py:446 `self.FUNCTIONS.pop('RANDSTR', None)` in MySQLParser._parse_alter_table_modify()",
+  "files": [
+   "sqlglot/parsers/mysql.py"
+  ],
+  "kind": "pollute:class-container"
+ },
+ "1ga9": {
+  "desc": "sqlglot/parsers/drill.py DrillParser.FUNCTIONS += \"PIVOT\": exp.SplitPart.from_arg_list",
+  "files": [
+   "sqlglot/parsers/drill.py"
+  ],
+  "kind": "dispatch:add-parser-function"
+ },
+ "1hrt": {
+  "desc": "sqlglot/generators/databricks.py add DatabricksGenerator.tofile_sql: `return self.function_fallback_sql(expression)`",
+  "files": [
+   "sqlglot/generators/databricks.py"
+  ],
+  "kind": "dispatch:add-sql-method"
  },
  "1ivu": {
   "desc": "rename tests/dialects/test_drill.py -> tests/dialects/check_drill.py (no longer collected)",
@@ -149,6 +205,13 @@
    "tests/dialects/test_drill.py"
   ],
   "kind": "file:rename-test"
+ },
+ "1nct": {
+  "desc": "sqlglot/expressions/ddl.py:65 SequenceProperties.arg_types += \"anzhy\": False",
+  "files": [
+   "sqlglot/expressions/ddl.py"
+  ],
+  "kind": "expr:arg-types"
  },
  "1p2q": {
   "desc": "tests/fixtures/optimizer/qualify_columns.sql:1114 add `# dialect: duckdb` line",
@@ -178,12 +241,33 @@
   ],
   "kind": "code:return-early"
  },
+ "1xjs": {
+  "desc": "sqlglot/parsers/spark.py SparkParser.FUNCTIONS += \"GENERATE_ARRAY\": exp.ArraySlice.from_arg_list",
+  "files": [
+   "sqlglot/parsers/spark.py"
+  ],
+  "kind": "dispatch:add-parser-function"
+ },
  "205c": {
   "desc": "sqlglot/typing/postgres.py:22 `and` -> `or`",
   "files": [
    "sqlglot/typing/postgres.py"
   ],
   "kind": "code:boolop"
+ },
+ "259o": {
+  "desc": "sqlglot/executor/__init__.py:72 `!=` -> `==`",
+  "files": [
+   "sqlglot/executor/__init__.py"
+  ],
+  "kind": "code:compare"
+ },
+ "28bw": {
+  "desc": "sqlglot/generators/mysql.py:839 rename method isascii_sql -> isascii_sql2 (1 references in the file)",
+  "files": [
+   "sqlglot/generators/mysql.py"
+  ],
+  "kind": "refactor:rename-method"
  },
  "2cws": {
   "desc": "tests/helpers.py:61 `in` -> `not in`",
@@ -192,12 +276,35 @@
   ],
   "kind": "test:helper"
  },
+ "2dq7": {
+  "desc": "sqlglot/generators/mysql.py MySQLGenerator.TRANSFORMS += exp.Atan: rename_func(\"ATAN\")",
+  "files": [
+   "sqlglot/generators/mysql.py"
+  ],
+  "kind": "dispatch:add-transform"
+ },
  "2gju": {
   "desc": "sqlglot/executor/context.py:5 remove `from sqlglot.executor.env import ENV`",
   "files": [
    "sqlglot/executor/context.py"
   ],
   "kind": "import:remove"
+ },
+ "2p7j": {
+  "desc": "sqlglot/expressions/functions.py:25 negate condition `t.TYPE_CHECKING`",
+  "files": [
+   "sqlglot/expressions/functions.py"
+  ],
+  "kind": "code:negate"
+ },
+ "2r0h": {
+  "desc": "new dialect Hhvds(DuckDB) [minimal]",
+  "files": [
+   "sqlglot/dialects/__init__.py",
+   "sqlglot/dialects/dialect.py",
+   "sqlglot/dialects/hhvds.py"
+  ],
+  "kind": "dialect:new"
  },
  "2tgo": {
   "desc": "sqlglot/optimizer/annotate_types.py:785 delete `if not isinstance(first_field, exp.In):`",
@@ -219,6 +326,83 @@
    "sqlglot/helper.py"
   ],
   "kind": "code:negate"
+ },
+ "33cj": {
+  "desc": "new dialect Rguml(MySQL) [minimal]",
+  "files": [
+   "sqlglot/dialects/__init__.py",
+   "sqlglot/dialects/dialect.py",
+   "sqlglot/dialects/rguml.py"
+  ],
+  "kind": "dialect:new"
+ },
+ "33w9": {
+  "desc": "sqlglot/expressions/string.py add new function expression XouqhPipq",
+  "files": [
+   "sqlglot/expressions/string.py"
+  ],
+  "kind": "class:add-expression"
+ },
+ "341l": {
+  "desc": "append a comment line to 55 source files",
+  "files": [
+   "sqlglot/dialects/bigquery.py",
+   "sqlglot/dialects/clickhouse.py",
+   "sqlglot/dialects/dialect.py",
+   "sqlglot/dialects/doris.py",
+   "sqlglot/dialects/dune.py",
+   "sqlglot/dialects/exasol.py",
+   "sqlglot/dialects/fabric.py",
+   "sqlglot/dialects/hive.py",
+   "sqlglot/dialects/oracle.py",
+   "sqlglot/dialects/postgres.py",
+   "sqlglot/dialects/singlestore.py",
+   "sqlglot/dialects/tableau.py",
+   "sqlglot/dialects/trino.py",
+   "sqlglot/dialects/tsql.py",
+   "sqlglot/diff.py",
+   "sqlglot/executor/context.py",
+   "sqlglot/executor/table.py",
+   "sqlglot/expressions/aggregate.py",
+   "sqlglot/expressions/constraints.py",
+   "sqlglot/expressions/core.py",
+   "sqlglot/expressions/ddl.py",
+   "sqlglot/expressions/functions.py",
+   "sqlglot/expressions/json.py",
+   "sqlglot/expressions/properties.py",
+   "sqlglot/generators/bigquery.py",
+   "sqlglot/generators/clickhouse.py",
+   "sqlglot/generators/databricks.py",
+   "sqlglot/generators/materialize.py",
+   "sqlglot/generators/presto.py",
+   "sqlglot/generators/prql.py",
+   "sqlglot/generators/python.py",
+   "sqlglot/generators/solr.py",
+   "sqlglot/generators/spark.py",
+   "sqlglot/generators/starrocks.py",
+   "sqlglot/optimizer/canonicalize.py",
+   "sqlglot/optimizer/eliminate_joins.py",
+   "sqlglot/optimizer/eliminate_subqueries.py",
+   "sqlglot/optimizer/normalize.py",
+   "sqlglot/optimizer/pushdown_predicates.py",
+   "sqlglot/optimizer/pushdown_projections.py",
+   "sqlglot/optimizer/qualify_tables.py",
+   "sqlglot/parsers/athena.py",
+   "sqlglot/parsers/clickhouse.py",
+   "sqlglot/parsers/dax.py",
+   "sqlglot/parsers/drill.py",
+   "sqlglot/parsers/duckdb.py",
+   "sqlglot/parsers/dune.py",
+   "sqlglot/parsers/exasol.py",
+   "sqlglot/parsers/materialize.py",
+   "sqlglot/parsers/solr.py",
+   "sqlglot/time.py",
+   "sqlglot/typing/clickhouse.py",
+   "sqlglot/typing/redshift.py",
+   "sqlglot/typing/spark.py",
+   "sqlglot/typing/sqlite.py"
+  ],
+  "kind": "sweep:comment"
  },
  "38f5": {
   "desc": "CHANGELOG.md edit outside the package and tests",
@@ -248,6 +432,13 @@
   ],
   "kind": "pollute:module-container"
  },
+ "3fjw": {
+  "desc": "sqlglot/generators/materialize.py add MaterializeGenerator.typeof_sql: `return self.func(\"TYPEOF\", expression.this, expression.this)`",
+  "files": [
+   "sqlglot/generators/materialize.py"
+  ],
+  "kind": "dispatch:add-sql-method"
+ },
  "3gam": {
   "desc": "sqlglot/generators/materialize.py:62 add docstring to tomap_sql()",
   "files": [
@@ -276,6 +467,29 @@
   ],
   "kind": "dispatch:research-c2"
  },
+ "3r9a": {
+  "desc": "sqlglot/typing/mysql.py:63 `or` -> `and`",
+  "files": [
+   "sqlglot/typing/mysql.py"
+  ],
+  "kind": "code:boolop"
+ },
+ "3t8y": {
+  "desc": "sqlglot/parsers/trino.py:14 base of TrinoParser: PrestoParser -> parser.Parser",
+  "files": [
+   "sqlglot/parsers/trino.py"
+  ],
+  "kind": "class:base"
+ },
+ "3tb1": {
+  "desc": "new dialect Quolg(MySQL) [minimal]",
+  "files": [
+   "sqlglot/dialects/__init__.py",
+   "sqlglot/dialects/dialect.py",
+   "sqlglot/dialects/quolg.py"
+  ],
+  "kind": "dialect:new"
+ },
  "3uy1": {
   "desc": "sqlglot/expressions/temporal.py add new function expression XqlroQiba",
   "files": [
@@ -283,12 +497,26 @@
   ],
   "kind": "class:add-expression"
  },
+ "3v76": {
+  "desc": "sqlglot/generators/exasol.py ExasolGenerator.TRANSFORMS += exp.GenerateTimestampArray: rename_func(\"GENERATE_TIMESTAMP_ARRAY\")",
+  "files": [
+   "sqlglot/generators/exasol.py"
+  ],
+  "kind": "dispatch:add-transform"
+ },
  "3vz6": {
   "desc": "sqlglot/expressions/ddl.py:158 Install.arg_types[\"from_\"] False -> True",
   "files": [
    "sqlglot/expressions/ddl.py"
   ],
   "kind": "expr:arg-types"
+ },
+ "3yjn": {
+  "desc": "sqlglot/optimizer/__init__.py:51 `_LAZY_ATTRS.pop(\"walk_in_scope\", None)` in __getattr__()",
+  "files": [
+   "sqlglot/optimizer/__init__.py"
+  ],
+  "kind": "pollute:module-container"
  },
  "42xu": {
   "desc": "sqlglot/generators/spark.py:202 `pass` in readparquet_sql()",
@@ -311,6 +539,13 @@
   ],
   "kind": "syntax:indent"
  },
+ "49o9": {
+  "desc": "sqlglot/expressions/ddl.py:393 Command.arg_types += \"rnntj\": False",
+  "files": [
+   "sqlglot/expressions/ddl.py"
+  ],
+  "kind": "expr:arg-types"
+ },
  "4i9z": {
   "desc": "tests/fixtures/optimizer/optimize_joins.sql add a duplicate statement",
   "files": [
@@ -325,6 +560,13 @@
   ],
   "kind": "fixture:delete"
  },
+ "4q2v": {
+  "desc": "sqlglot/parsers/bigquery.py BigQueryParser.FUNCTIONS += \"BIGNUMERIC\": exp.GenerateText.from_arg_list",
+  "files": [
+   "sqlglot/parsers/bigquery.py"
+  ],
+  "kind": "dispatch:add-parser-function"
+ },
  "4vxs": {
   "desc": "sqlglot/errors.py:43 `raise RuntimeError` in __init__()",
   "files": [
@@ -332,12 +574,33 @@
   ],
   "kind": "code:raise"
  },
+ "4y4z": {
+  "desc": "sqlglot/typing/__init__.py:22 `EXPRESSION_METADATA.pop(exp.Struct, None)` in annotate_by_numeric_arg()",
+  "files": [
+   "sqlglot/typing/__init__.py"
+  ],
+  "kind": "pollute:module-container"
+ },
  "4zjh": {
   "desc": "sqlglot/parsers/starrocks.py:101 `self.FUNCTION_PARSERS.pop('GAP_FILL', None)` in StarRocksParser._parse_pivot()",
   "files": [
    "sqlglot/parsers/starrocks.py"
   ],
   "kind": "pollute:class-container"
+ },
+ "54qi": {
+  "desc": "sqlglot/expressions/math.py:210 SafeAdd.arg_types += \"aaglt\": False",
+  "files": [
+   "sqlglot/expressions/math.py"
+  ],
+  "kind": "expr:arg-types"
+ },
+ "5bq5": {
+  "desc": "tests/fixtures/optimizer/quote_identifiers.sql gains a UTF-8 byte order mark",
+  "files": [
+   "tests/fixtures/optimizer/quote_identifiers.sql"
+  ],
+  "kind": "format:bom"
  },
  "5ch5": {
   "desc": "sqlglot/optimizer/normalize.py drop the final newline",
@@ -367,6 +630,13 @@
   ],
   "kind": "table:tokenizer"
  },
+ "6e84": {
+  "desc": "sqlglot/parsers/exasol.py ExasolParser.FUNCTIONS += \"SHIFTLEFT\": exp.ToDecfloat.from_arg_list",
+  "files": [
+   "sqlglot/parsers/exasol.py"
+  ],
+  "kind": "dispatch:add-parser-function"
+ },
  "6ezf": {
   "desc": "sqlglot/generators/clickhouse.py:430 delete entry ClickHouseGenerator.ON_CLUSTER_TARGETS: `\"SCHEMA\",  # Transpiled CREATE SCHEMA may have OnCluster pro`",
   "files": [
@@ -395,6 +665,20 @@
   ],
   "kind": "file:add-test"
  },
+ "6pzg": {
+  "desc": "sqlglot/generators/bigquery.py BigQueryGenerator.TRANSFORMS += exp.Boolnot: rename_func(\"BOOLNOT\")",
+  "files": [
+   "sqlglot/generators/bigquery.py"
+  ],
+  "kind": "dispatch:add-transform"
+ },
+ "6wwr": {
+  "desc": "sqlglot/generators/starrocks.py:415 `self._dispatch.pop(exp.Floor, None)` in StarRocksGenerator.pivot_sql()",
+  "files": [
+   "sqlglot/generators/starrocks.py"
+  ],
+  "kind": "pollute:class-container"
+ },
  "70nf": {
   "desc": "tests/fixtures/optimizer/tpc-ds/tpc-ds.sql:7604 insert a blank line",
   "files": [
@@ -408,6 +692,35 @@
    "tests/fixtures/optimizer/pushdown_cte_alias_columns.sql"
   ],
   "kind": "file:delete-fixture"
+ },
+ "7709": {
+  "desc": "tests/dialects/test_materialize.py:81 delete a test statement",
+  "files": [
+   "tests/dialects/test_materialize.py"
+  ],
+  "kind": "test:weaken"
+ },
+ "79n1": {
+  "desc": "sqlglot/executor/table.py:29 `+` -> `-`",
+  "files": [
+   "sqlglot/executor/table.py"
+  ],
+  "kind": "code:arith"
+ },
+ "7gqb": {
+  "desc": "sqlglot/optimizer/eliminate_ctes.py:44 swap first two arguments",
+  "files": [
+   "sqlglot/optimizer/eliminate_ctes.py"
+  ],
+  "kind": "code:arg-swap"
+ },
+ "7qb6": {
+  "desc": "rename tests/fixtures/optimizer/eliminate_joins.sql -> tests/fixtures/optimizer/eliminate_joins_\u00e9.sql (quoted path in the diff)",
+  "files": [
+   "tests/fixtures/optimizer/eliminate_joins.sql",
+   "tests/fixtures/optimizer/eliminate_joins_\u00e9.sql"
+  ],
+  "kind": "file:quoted-path"
  },
  "7rdh": {
   "desc": "tests/fixtures/optimizer/pushdown_predicates.sql:126 add inline `--` comment",
@@ -423,12 +736,26 @@
   ],
   "kind": "test:assert-edit"
  },
+ "843x": {
+  "desc": "sqlglot/generators/fabric.py FabricGenerator.TRANSFORMS += exp.ApproximateSimilarity: lambda self, e: self.func(\"APPROXIMATE_SIMILARITY\", e.this)",
+  "files": [
+   "sqlglot/generators/fabric.py"
+  ],
+  "kind": "dispatch:add-transform"
+ },
  "87ld": {
   "desc": "tests/test_dialect_imports.py:28 delete a test statement",
   "files": [
    "tests/test_dialect_imports.py"
   ],
   "kind": "test:weaken"
+ },
+ "89rp": {
+  "desc": "sqlglot/typing/duckdb.py:50 `DATETIME_WITHOUT_TZ.discard(exp.DType.TIMESTAMP)` in _annotate_floor_ceil()",
+  "files": [
+   "sqlglot/typing/duckdb.py"
+  ],
+  "kind": "pollute:module-container"
  },
  "8mzy": {
   "desc": "sqlglot/expressions/array.py:311 remove `@property` from keys()",
@@ -450,6 +777,13 @@
    "sqlglot/dialects/risingwave.py"
   ],
   "kind": "import:unused"
+ },
+ "9wwq": {
+  "desc": "[op_compare] sqlglotc/setup.py:181 `in` -> `not in`",
+  "files": [
+   "sqlglotc/setup.py"
+  ],
+  "kind": "outside:executed"
  },
  "a1et": {
   "desc": "comment sweep over 38 files + [op_bool] sqlglot/optimizer/optimize_joins.py:109 `or` -> `and`",
@@ -524,12 +858,33 @@
   ],
   "kind": "code:arith"
  },
+ "bpux": {
+  "desc": "add tests/conftest.py: benign autouse fixture",
+  "files": [
+   "tests/conftest.py"
+  ],
+  "kind": "test:conftest"
+ },
+ "bq93": {
+  "desc": "sqlglot/generator.py:4090 `AFTER_HAVING_MODIFIER_TRANSFORMS.pop(\"windows\", None)` in jsonpath_sql()",
+  "files": [
+   "sqlglot/generator.py"
+  ],
+  "kind": "pollute:module-container"
+ },
  "bt29": {
   "desc": "sqlglot/planner.py:447 add unused method Sort._xdjkp_helper",
   "files": [
    "sqlglot/planner.py"
   ],
   "kind": "class:add-method"
+ },
+ "bv45": {
+  "desc": "sqlglot/generators/redshift.py RedshiftGenerator.TRANSFORMS += exp.ArrayMax: rename_func(\"PARSE_BIGNUMERIC\")",
+  "files": [
+   "sqlglot/generators/redshift.py"
+  ],
+  "kind": "dispatch:add-transform"
  },
  "bxgz": {
   "desc": "tests/fixtures/optimizer/isolate_table_selects.sql converted to CRLF line endings",
@@ -538,6 +893,34 @@
   ],
   "kind": "format:crlf"
  },
+ "bxqi": {
+  "desc": "sqlglot/parsers/athena.py:16 add unused method AthenaTrinoParser._dcabx_helper",
+  "files": [
+   "sqlglot/parsers/athena.py"
+  ],
+  "kind": "class:add-method"
+ },
+ "c4ok": {
+  "desc": "sqlglot/generators/snowflake.py:962 `self.TRANSFORMS.pop(exp.Put, None)` in SnowflakeGenerator.strtotime_sql()",
+  "files": [
+   "sqlglot/generators/snowflake.py"
+  ],
+  "kind": "pollute:class-container"
+ },
+ "ca5k": {
+  "desc": "sqlglot/generators/mysql.py MySQLGenerator.TRANSFORMS += exp.Hll: rename_func(\"HLL\")",
+  "files": [
+   "sqlglot/generators/mysql.py"
+  ],
+  "kind": "dispatch:add-transform"
+ },
+ "cihd": {
+  "desc": "sqlglot/generator.py gains a UTF-8 byte order mark",
+  "files": [
+   "sqlglot/generator.py"
+  ],
+  "kind": "format:bom"
+ },
  "cqvs": {
   "desc": "tests/fixtures/optimizer/qualify_tables.sql:122 trailing whitespace",
   "files": [
@@ -545,12 +928,47 @@
   ],
   "kind": "fixture:trailing-space"
  },
+ "cth7": {
+  "desc": "sqlglot/parsers/drill.py DrillParser.FUNCTIONS += \"PIVOT\": exp.TimeFromParts.from_arg_list",
+  "files": [
+   "sqlglot/parsers/drill.py"
+  ],
+  "kind": "dispatch:add-parser-function"
+ },
+ "ctx9": {
+  "desc": "sqlglot/generators/trino.py:160 `self.TRANSFORMS.pop(exp.ZeroFillColumnConstraint, None)` in TrinoGenerator.iterate_sql()",
+  "files": [
+   "sqlglot/generators/trino.py"
+  ],
+  "kind": "pollute:class-container"
+ },
+ "cwef": {
+  "desc": "sqlglot/parsers/materialize.py:29 early `return None` in _parse_map()",
+  "files": [
+   "sqlglot/parsers/materialize.py"
+  ],
+  "kind": "code:return-early"
+ },
  "d2k6": {
   "desc": "sqlglot/__init__.py:165 `is` -> `is not`",
   "files": [
    "sqlglot/__init__.py"
   ],
   "kind": "init:edit"
+ },
+ "d8yl": {
+  "desc": "sqlglot/generators/oracle.py add OracleGenerator.regravgy_sql: `return self.func(\"REGR_AVGY\", expression.this, expression.this)`",
+  "files": [
+   "sqlglot/generators/oracle.py"
+  ],
+  "kind": "dispatch:add-sql-method"
+ },
+ "d9hr": {
+  "desc": "sqlglot/serde.py drop the final newline",
+  "files": [
+   "sqlglot/serde.py"
+  ],
+  "kind": "format:no-eol"
  },
  "dykt": {
   "desc": "new dialect Zblix(Postgres) [enum-only]",
@@ -565,6 +983,20 @@
    "tests/test_helper.py"
   ],
   "kind": "test:add"
+ },
+ "eta1": {
+  "desc": "sqlglot/typing/tsql.py:13 `EXPRESSION_METADATA.pop(exp.CurrentTimestamp, None)` in _annotate_math_function()",
+  "files": [
+   "sqlglot/typing/tsql.py"
+  ],
+  "kind": "pollute:module-container"
+ },
+ "etel": {
+  "desc": "sqlglot/generators/snowflake.py add SnowflakeGenerator.numbertostr_sql: `return self.func(\"NUMBER_TO_STR\", expression.this)`",
+  "files": [
+   "sqlglot/generators/snowflake.py"
+  ],
+  "kind": "dispatch:add-sql-method"
  },
  "f6tn": {
   "desc": "sqlglot/trie.py:44 add param _extra=None to in_trie()",
@@ -587,12 +1019,164 @@
   ],
   "kind": "dispatch:add-transform"
  },
+ "g30e": {
+  "desc": "sqlglot/generators/athena.py add _HiveGenerator.week_sql: `return self.function_fallback_sql(expression)`",
+  "files": [
+   "sqlglot/generators/athena.py"
+  ],
+  "kind": "dispatch:add-sql-method"
+ },
+ "g6ux": {
+  "desc": "sqlglot/generators/fabric.py add FabricGenerator.stringtoarray_sql: `return self.func(\"STRING_TO_ARRAY\", *(v for v in expression.args.values() if isinstance(v, exp.Expr)))`",
+  "files": [
+   "sqlglot/generators/fabric.py"
+  ],
+  "kind": "dispatch:add-sql-method"
+ },
+ "gs86": {
+  "desc": "sqlglot/generators/athena.py:108 `self._dispatch.pop(exp.RemoteWithConnectionModelProperty, None)` in _HiveGenerator.alter_sql()",
+  "files": [
+   "sqlglot/generators/athena.py"
+  ],
+  "kind": "pollute:class-container"
+ },
+ "gv7p": {
+  "desc": "sqlglot/generators/tsql.py:579 remove `@generator.unsupported_args(\"unlogged\", \"expressions\")` from into_sql()",
+  "files": [
+   "sqlglot/generators/tsql.py"
+  ],
+  "kind": "code:decorator-remove"
+ },
  "hbl6": {
   "desc": "sqlglot/parsers/spark2.py:122 swap adjacent entries of FUNCTION_PARSERS",
   "files": [
    "sqlglot/parsers/spark2.py"
   ],
   "kind": "table:reorder"
+ },
+ "hmmv": {
+  "desc": "tests/fixtures/optimizer/qualify_columns_ddl.sql drop the final newline",
+  "files": [
+   "tests/fixtures/optimizer/qualify_columns_ddl.sql"
+  ],
+  "kind": "format:no-eol"
+ },
+ "hv6z": {
+  "desc": "comment sweep over 47 files + [op_constant] sqlglot/dialects/__init__.py:96 \"StarRocks\" -> \"StarRockS\"",
+  "files": [
+   "sqlglot/dialects/__init__.py",
+   "sqlglot/dialects/athena.py",
+   "sqlglot/dialects/bigquery.py",
+   "sqlglot/dialects/databricks.py",
+   "sqlglot/dialects/drill.py",
+   "sqlglot/dialects/duckdb.py",
+   "sqlglot/dialects/fabric.py",
+   "sqlglot/dialects/materialize.py",
+   "sqlglot/dialects/redshift.py",
+   "sqlglot/dialects/spark2.py",
+   "sqlglot/dialects/tableau.py",
+   "sqlglot/dialects/teradata.py",
+   "sqlglot/dialects/trino.py",
+   "sqlglot/errors.py",
+   "sqlglot/executor/context.py",
+   "sqlglot/expressions/array.py",
+   "sqlglot/expressions/functions.py",
+   "sqlglot/generator.py",
+   "sqlglot/generators/doris.py",
+   "sqlglot/generators/dremio.py",
+   "sqlglot/generators/druid.py",
+   "sqlglot/generators/duckdb.py",
+   "sqlglot/generators/exasol.py",
+   "sqlglot/generators/postgres.py",
+   "sqlglot/generators/prql.py",
+   "sqlglot/generators/redshift.py",
+   "sqlglot/generators/risingwave.py",
+   "sqlglot/generators/singlestore.py",
+   "sqlglot/generators/trino.py",
+   "sqlglot/jsonpath.py",
+   "sqlglot/optimizer/eliminate_ctes.py",
+   "sqlglot/optimizer/normalize.py",
+   "sqlglot/optimizer/normalize_identifiers.py",
+   "sqlglot/parsers/athena.py",
+   "sqlglot/parsers/base.py",
+   "sqlglot/parsers/dax.py",
+   "sqlglot/parsers/doris.py",
+   "sqlglot/parsers/druid.py",
+   "sqlglot/parsers/oracle.py",
+   "sqlglot/parsers/prql.py",
+   "sqlglot/parsers/solr.py",
+   "sqlglot/parsers/starrocks.py",
+   "sqlglot/serde.py",
+   "sqlglot/trie.py",
+   "sqlglot/typing/duckdb.py",
+   "sqlglot/typing/mysql.py",
+   "sqlglot/typing/postgres.py",
+   "sqlglot/typing/spark2.py"
+  ],
+  "kind": "sweep:mixed"
+ },
+ "hvgg": {
+  "desc": "sqlglot/generators/materialize.py add MaterializeGenerator.atan2_sql: `return self.func(\"ATAN2\", expression.this)`",
+  "files": [
+   "sqlglot/generators/materialize.py"
+  ],
+  "kind": "dispatch:add-sql-method"
+ },
+ "i70s": {
+  "desc": "sqlglot/generators/teradata.py TeradataGenerator.TRANSFORMS += exp.Degrees: rename_func(\"DEGREES\")",
+  "files": [
+   "sqlglot/generators/teradata.py"
+  ],
+  "kind": "dispatch:add-transform"
+ },
+ "injy": {
+  "desc": "tests/fixtures/optimizer/unnest_subqueries.sql:174 trailing whitespace",
+  "files": [
+   "tests/fixtures/optimizer/unnest_subqueries.sql"
+  ],
+  "kind": "fixture:trailing-space"
+ },
+ "iyaq": {
+  "desc": "add tests/conftest.py: autouse fixture that errors in test_transforms",
+  "files": [
+   "tests/conftest.py"
+  ],
+  "kind": "test:conftest"
+ },
+ "j4d5": {
+  "desc": "tests/fixtures/partial.sql drop the final newline",
+  "files": [
+   "tests/fixtures/partial.sql"
+  ],
+  "kind": "format:no-eol"
+ },
+ "jcdi": {
+  "desc": "tests/fixtures/optimizer/simplify.sql:494 insert a blank line",
+  "files": [
+   "tests/fixtures/optimizer/simplify.sql"
+  ],
+  "kind": "fixture:blank-line"
+ },
+ "jcih": {
+  "desc": "tests/fixtures/optimizer/canonicalize_internal_names.sql:219 insert a blank line",
+  "files": [
+   "tests/fixtures/optimizer/canonicalize_internal_names.sql"
+  ],
+  "kind": "fixture:blank-line"
+ },
+ "jd0s": {
+  "desc": "sqlglot/generators/sqlite.py:362 `self.TRANSFORMS.pop(exp.DefaultColumnConstraint, None)` in SQLiteGenerator.generateseries_sql()",
+  "files": [
+   "sqlglot/generators/sqlite.py"
+  ],
+  "kind": "pollute:class-container"
+ },
+ "l98s": {
+  "desc": "sqlglot/expressions/aggregate.py converted to CRLF line endings",
+  "files": [
+   "sqlglot/expressions/aggregate.py"
+  ],
+  "kind": "format:crlf"
  },
  "lo0l": {
   "desc": "rename tests/fixtures/optimizer/qualify_columns.sql -> tests/fixtures/optimizer/qualify_columns copy.sql (quoted path in the diff)",
@@ -601,6 +1185,79 @@
    "tests/fixtures/optimizer/qualify_columns.sql"
   ],
   "kind": "file:quoted-path"
+ },
+ "lvw2": {
+  "desc": "append a comment line to 53 source files",
+  "files": [
+   "sqlglot/dialects/athena.py",
+   "sqlglot/dialects/bigquery.py",
+   "sqlglot/dialects/dax.py",
+   "sqlglot/dialects/druid.py",
+   "sqlglot/dialects/materialize.py",
+   "sqlglot/dialects/presto.py",
+   "sqlglot/dialects/spark.py",
+   "sqlglot/dialects/spark2.py",
+   "sqlglot/dialects/sqlite.py",
+   "sqlglot/diff.py",
+   "sqlglot/errors.py",
+   "sqlglot/executor/table.py",
+   "sqlglot/expressions/array.py",
+   "sqlglot/expressions/builders.py",
+   "sqlglot/expressions/datatypes.py",
+   "sqlglot/expressions/dml.py",
+   "sqlglot/expressions/temporal.py",
+   "sqlglot/generator.py",
+   "sqlglot/generators/dax.py",
+   "sqlglot/generators/drill.py",
+   "sqlglot/generators/hive.py",
+   "sqlglot/generators/materialize.py",
+   "sqlglot/generators/presto.py",
+   "sqlglot/generators/python.py",
+   "sqlglot/generators/solr.py",
+   "sqlglot/generators/sqlite.py",
+   "sqlglot/generators/starrocks.py",
+   "sqlglot/helper.py",
+   "sqlglot/lineage.py",
+   "sqlglot/optimizer/eliminate_joins.py",
+   "sqlglot/optimizer/isolate_table_selects.py",
+   "sqlglot/optimizer/merge_subqueries.py",
+   "sqlglot/optimizer/optimize_joins.py",
+   "sqlglot/optimizer/optimizer.py",
+   "sqlglot/optimizer/pushdown_predicates.py",
+   "sqlglot/optimizer/pushdown_projections.py",
+   "sqlglot/optimizer/qualify_columns.py",
+   "sqlglot/optimizer/scope.py",
+   "sqlglot/parsers/bigquery.py",
+   "sqlglot/parsers/dax.py",
+   "sqlglot/parsers/dremio.py",
+   "sqlglot/parsers/oracle.py",
+   "sqlglot/parsers/prql.py",
+   "sqlglot/parsers/singlestore.py",
+   "sqlglot/parsers/snowflake.py",
+   "sqlglot/parsers/tableau.py",
+   "sqlglot/parsers/teradata.py",
+   "sqlglot/planner.py",
+   "sqlglot/serde.py",
+   "sqlglot/tokenizer_core.py",
+   "sqlglot/typing/clickhouse.py",
+   "sqlglot/typing/redshift.py",
+   "sqlglot/typing/sqlite.py"
+  ],
+  "kind": "sweep:comment"
+ },
+ "mbwp": {
+  "desc": "tests/test_integration_loader.py:14 delete a test statement",
+  "files": [
+   "tests/test_integration_loader.py"
+  ],
+  "kind": "test:weaken"
+ },
+ "mh3m": {
+  "desc": "tests/fixtures/optimizer/optimize_joins.sql converted to CRLF line endings",
+  "files": [
+   "tests/fixtures/optimizer/optimize_joins.sql"
+  ],
+  "kind": "format:crlf"
  },
  "mtl9": {
   "desc": "sqlglot/typing/spark2.py gains a UTF-8 byte order mark",
@@ -648,6 +1305,94 @@
   ],
   "kind": "sweep:comment"
  },
+ "mxbx": {
+  "desc": "comment sweep over 46 files + [op_return_early] sqlglot/executor/env.py:110 early `return None` in predicate()",
+  "files": [
+   "sqlglot/dialects/bigquery.py",
+   "sqlglot/dialects/dialect.py",
+   "sqlglot/dialects/doris.py",
+   "sqlglot/dialects/dune.py",
+   "sqlglot/dialects/materialize.py",
+   "sqlglot/dialects/redshift.py",
+   "sqlglot/dialects/singlestore.py",
+   "sqlglot/dialects/snowflake.py",
+   "sqlglot/dialects/sqlite.py",
+   "sqlglot/dialects/tableau.py",
+   "sqlglot/dialects/trino.py",
+   "sqlglot/executor/env.py",
+   "sqlglot/expressions/array.py",
+   "sqlglot/expressions/functions.py",
+   "sqlglot/expressions/string.py",
+   "sqlglot/expressions/temporal.py",
+   "sqlglot/generator.py",
+   "sqlglot/generators/athena.py",
+   "sqlglot/generators/dax.py",
+   "sqlglot/generators/doris.py",
+   "sqlglot/generators/postgres.py",
+   "sqlglot/generators/python.py",
+   "sqlglot/generators/solr.py",
+   "sqlglot/optimizer/canonicalize.py",
+   "sqlglot/optimizer/eliminate_subqueries.py",
+   "sqlglot/optimizer/helpers.py",
+   "sqlglot/parsers/base.py",
+   "sqlglot/parsers/databricks.py",
+   "sqlglot/parsers/dax.py",
+   "sqlglot/parsers/doris.py",
+   "sqlglot/parsers/dremio.py",
+   "sqlglot/parsers/fabric.py",
+   "sqlglot/parsers/postgres.py",
+   "sqlglot/parsers/risingwave.py",
+   "sqlglot/parsers/spark.py",
+   "sqlglot/serde.py",
+   "sqlglot/time.py",
+   "sqlglot/tokens.py",
+   "sqlglot/trie.py",
+   "sqlglot/typing/clickhouse.py",
+   "sqlglot/typing/databricks.py",
+   "sqlglot/typing/hive.py",
+   "sqlglot/typing/mysql.py",
+   "sqlglot/typing/redshift.py",
+   "sqlglot/typing/snowflake.py",
+   "sqlglot/typing/spark2.py",
+   "sqlglot/typing/tsql.py"
+  ],
+  "kind": "sweep:mixed"
+ },
+ "n09d": {
+  "desc": "tests/fixtures/optimizer/qualify_columns_ddl.sql:16 trailing whitespace",
+  "files": [
+   "tests/fixtures/optimizer/qualify_columns_ddl.sql"
+  ],
+  "kind": "fixture:trailing-space"
+ },
+ "nn1x": {
+  "desc": "tests/fixtures/optimizer/tpc-ds/tpc-ds.sql:9004 trailing whitespace",
+  "files": [
+   "tests/fixtures/optimizer/tpc-ds/tpc-ds.sql"
+  ],
+  "kind": "fixture:trailing-space"
+ },
+ "oocg": {
+  "desc": "add posts/gr\u00f6\u00dfe notes.md (quoted path in the diff)",
+  "files": [
+   "posts/gr\u00f6\u00dfe notes.md"
+  ],
+  "kind": "file:quoted-path"
+ },
+ "pagy": {
+  "desc": "sqlglot/schema.py gains a UTF-8 byte order mark",
+  "files": [
+   "sqlglot/schema.py"
+  ],
+  "kind": "format:bom"
+ },
+ "plgy": {
+  "desc": "add posts/release notes/read me.md (quoted path in the diff)",
+  "files": [
+   "posts/release notes/read me.md"
+  ],
+  "kind": "file:quoted-path"
+ },
  "q0cc": {
   "desc": "[op_noop_format] sqlglotc/setup.py whitespace-only change",
   "files": [
@@ -662,9 +1407,30 @@
   ],
   "kind": "pollute:research-c1"
  },
+ "r91b": {
+  "desc": "[op_compare] sqlglotc/setup.py:107 `is` -> `is not`",
+  "files": [
+   "sqlglotc/setup.py"
+  ],
+  "kind": "outside:executed"
+ },
  "vkpa": {
   "desc": "empty patch (no change at all)",
   "files": [],
   "kind": "noop:empty"
+ },
+ "vmnv": {
+  "desc": "tests/fixtures/optimizer/tpc-h/tpc-h.sql:885 insert a blank line",
+  "files": [
+   "tests/fixtures/optimizer/tpc-h/tpc-h.sql"
+  ],
+  "kind": "fixture:blank-line"
+ },
+ "y2ej": {
+  "desc": "bump submodule sqlglot-integration-tests 3000152 -> a47daf2",
+  "files": [
+   "sqlglot-integration-tests"
+  ],
+  "kind": "file:submodule"
  }
 }

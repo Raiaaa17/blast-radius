@@ -1,0 +1,11 @@
+diff --git a/tests/dialects/test_materialize.py b/tests/dialects/test_materialize.py
+index 0a0d049..4d83365 100644
+--- a/tests/dialects/test_materialize.py
++++ b/tests/dialects/test_materialize.py
+@@ -78,6 +78,5 @@ class TestMaterialize(Validator):
+         self.validate_identity("SELECT MAP[]")
+         self.validate_identity("SELECT MAP['a' => MAP['b' => 'c']]")
+         self.validate_identity("SELECT CAST(MAP['a' => 1] AS MAP[TEXT => INT])")
+-        self.validate_identity("SELECT CAST(NULL AS MAP[TEXT => INT])")
+         self.validate_identity("SELECT CAST(NULL AS MAP[TEXT => MAP[TEXT => INT]])")
+         self.validate_identity("SELECT MAP(SELECT 'a', 1)")

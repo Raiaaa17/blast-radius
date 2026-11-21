@@ -1,0 +1,13 @@
+diff --git a/sqlglotc/setup.py b/sqlglotc/setup.py
+index a9a97d1..77ac05d 100644
+--- a/sqlglotc/setup.py
++++ b/sqlglotc/setup.py
+@@ -104,7 +104,7 @@ class build_ext(_build_ext):
+         super().finalize_options()
+         # Compile in parallel by default; builds driven by pip (wheel/sdist installs)
+         # have no way to pass -j. An explicit -j on the command line still wins.
+-        if self.parallel is None:
++        if self.parallel is not None:
+             self.parallel = os.cpu_count() or 1
+ 
+     def build_extensions(self):

@@ -1,0 +1,13 @@
+diff --git a/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql b/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql
+index ea2df29..9269053 100644
+--- a/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql
++++ b/tests/fixtures/optimizer/tpc-ds/tpc-ds.sql
+@@ -9001,7 +9001,7 @@ WITH "date_dim_2" AS (
+     "warehouse"."w_county" AS "w_county",
+     "warehouse"."w_state" AS "w_state",
+     "warehouse"."w_country" AS "w_country",
+-    'ZOUROS,ZHOU' AS "ship_carriers",
++    'ZOUROS,ZHOU' AS "ship_carriers",  
+     "date_dim"."d_year" AS "year1",
+     SUM(
+       CASE

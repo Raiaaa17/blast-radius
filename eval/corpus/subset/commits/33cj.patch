@@ -1,0 +1,38 @@
+diff --git a/sqlglot/dialects/__init__.py b/sqlglot/dialects/__init__.py
+index 16bcf6c..bd791dc 100644
+--- a/sqlglot/dialects/__init__.py
++++ b/sqlglot/dialects/__init__.py
+@@ -86,6 +86,7 @@ DIALECTS = [
+     "Presto",
+     "PRQL",
+     "Redshift",
++    "Rguml",
+     "RisingWave",
+     "SingleStore",
+     "Snowflake",
+diff --git a/sqlglot/dialects/dialect.py b/sqlglot/dialects/dialect.py
+index fed01b2..a63f78c 100644
+--- a/sqlglot/dialects/dialect.py
++++ b/sqlglot/dialects/dialect.py
+@@ -131,6 +131,7 @@ class Dialects(str, Enum):
+     TERADATA = "teradata"
+     TRINO = "trino"
+     TSQL = "tsql"
++    RGUML = "rguml"
+     EXASOL = "exasol"
+ 
+ 
+diff --git a/sqlglot/dialects/rguml.py b/sqlglot/dialects/rguml.py
+new file mode 100644
+index 0000000..05a74f7
+--- /dev/null
++++ b/sqlglot/dialects/rguml.py
+@@ -0,0 +1,8 @@
++from __future__ import annotations
++
++from sqlglot.dialects.mysql import MySQL
++
++
++class Rguml(MySQL):
++    """Rguml: a MySQL variant."""
++    pass

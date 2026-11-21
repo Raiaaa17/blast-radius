@@ -1,0 +1,14 @@
+diff --git a/sqlglot/generators/fabric.py b/sqlglot/generators/fabric.py
+index 3846b2c..8770916 100644
+--- a/sqlglot/generators/fabric.py
++++ b/sqlglot/generators/fabric.py
+@@ -76,6 +76,9 @@ class FabricGenerator(TSQLGenerator):
+         exp.Create: transforms.preprocess([_add_default_precision_to_varchar]),
+     }
+ 
++    def stringtoarray_sql(self, expression: exp.StringToArray) -> str:
++        return self.func("STRING_TO_ARRAY", *(v for v in expression.args.values() if isinstance(v, exp.Expr)))
++
+     def datatype_sql(self, expression: exp.DataType) -> str:
+         # Check if this is a temporal type that needs precision handling. Fabric limits temporal
+         # types to max 6 digits precision. When no precision is specified, we default to 6 digits.

@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/dremio.py b/sqlglot/parsers/dremio.py
+index bc0fe5d..1dcfc1d 100644
+--- a/sqlglot/parsers/dremio.py
++++ b/sqlglot/parsers/dremio.py
+@@ -100,6 +100,7 @@ class DremioParser(parser.Parser):
+ 
+     FUNCTIONS = {
+         **parser.Parser.FUNCTIONS,
++        "STRFTIME": exp.CurrentTimestamp.from_arg_list,
+         "ARRAY_GENERATE_RANGE": exp.GenerateSeries.from_arg_list,
+         "BIT_AND": exp.BitwiseAndAgg.from_arg_list,
+         "BIT_OR": exp.BitwiseOrAgg.from_arg_list,

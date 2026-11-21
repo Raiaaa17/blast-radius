@@ -11,7 +11,7 @@ patch or kind of edit to the tests it breaks).
 | `labeler/brreport.py` | pytest plugin the labeler loads: per-test outcome, subtests, durations, collection errors. |
 | `score_image.sh` | Scores a selector image on a labeled corpus under the scorer's exact docker flags. |
 | `corpus/gen_mutations.py` | Generates stress patches (60 kinds of edit, plus multi-file mixes). |
-| `corpus/subset/` | A small labeled subset of the stress corpus, kept in git (the full corpus lives outside the repo). |
+| `corpus/subset/` | Every exactly labeled stress patch of at most 20 KB (165 of 173, 85 kinds), kept in git; the full corpus lives outside the repo. |
 
 Grader semantics, timings and gotchas live in the cross-team notes at
 `/home/rayana/firstmate/data/br-eval/findings.md`.
@@ -112,3 +112,28 @@ systemd slice, `--cgroup-parent`), the wall time against the limit, every miss
 with its kind and missed tests, cost per kind, and the middle of `--runs` totals.
 `--batch N` runs the corpus as consecutive batches of N commits, like the
 hidden sets.
+
+## State when the work stopped (2026-11-21 13:20 UTC) and how to resume
+
+- Stress corpus: 733 patches, 92 kinds, at `/home/rayana/firstmate/data/br-eval/corpora/stress`
+  (`commits/`, `kinds.json`, `meta.json`, `labels/`, `answers.json`). 173 have exact labels (every
+  `answers.json` entry is exact: partial, killed and unappliable runs are never listed). Labeled first: the
+  shared-state pollution and dispatch-addition shapes, and one or more of each round-3 kind. Still
+  unlabeled: most second and later patches of the round-1 kinds, and all `perf:*` patches.
+- `corpus/subset/` = `make_subset.py <stress> --per-kind 1000 --max-bytes 20000`. The 8 labeled patches left
+  out are the ones over 20 KB: 4 `file:binary`, 2 `noop:large`, 1 `format:crlf`, 1 `file:delete-test`.
+- Resume labeling from where it stopped (labels already written are skipped). Use at most 2 jobs, each with a
+  hard 2500m cap, starting only above 3 GB free:
+
+  ```sh
+  S=/home/rayana/firstmate/data/br-eval/corpora/stress
+  eval/labeler/label.py --corpus $S --jobs 2 --cpuset 10,11 --memory 2500m --min-free-gb 3 \
+      --reuse-reports --skip-kinds perf
+  eval/labeler/label.py --corpus $S --kinds perf:infinite-loop --timeout-floor 20 --timeout-scale 6 --wall 5400
+  eval/labeler/label.py --corpus $S --kinds perf --timeout 60 --wall 3600
+  ```
+- Scoring a selector on the labeled patches: `eval/score_image.sh <image> <stress-dir> --batch 40` skips
+  unlabeled patches. Selector v3 (main c99a412) was being scored when the work stopped: its first 40 labeled
+  stress patches gave 0 misses, 285.5 s simulated against a 154.5 s oracle floor, 25.3 s CPU, 26 s wall and a
+  360 MB peak. The other 133 labeled patches were not scored.
+

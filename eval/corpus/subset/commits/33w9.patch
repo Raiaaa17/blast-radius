@@ -1,0 +1,12 @@
+diff --git a/sqlglot/expressions/string.py b/sqlglot/expressions/string.py
+index b5e1e20..ab432e9 100644
+--- a/sqlglot/expressions/string.py
++++ b/sqlglot/expressions/string.py
+@@ -612,3 +612,7 @@ class ParseNumeric(Expression, Func):
+ 
+ class ParseUrl(Expression, Func):
+     arg_types = {"this": True, "part_to_extract": False, "key": False, "permissive": False}
++
++
++class XouqhPipq(Expression, Func):
++    arg_types = {"this": True, "expression": False}

@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/drill.py b/sqlglot/parsers/drill.py
+index 73a3c03..e0ec7d7 100644
+--- a/sqlglot/parsers/drill.py
++++ b/sqlglot/parsers/drill.py
+@@ -25,6 +25,7 @@ class DrillParser(parser.Parser):
+ 
+     FUNCTIONS = {
+         **parser.Parser.FUNCTIONS,
++        "PIVOT": exp.SplitPart.from_arg_list,
+         "ILIKE": _build_ilike,
+         "REPEATED_COUNT": exp.ArraySize.from_arg_list,
+         "TO_TIMESTAMP": exp.TimeStrToTime.from_arg_list,
