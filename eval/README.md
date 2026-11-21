@@ -53,6 +53,11 @@ one serial full suite pinned to one host CPU (`--cpuset-cpus`): under a CPU
 Each run is hard-capped at `--memory` (swap disabled) and starts only when the
 host has `--min-free-gb` available; the label records the run's peak memory,
 and a run the kernel OOM-kills is marked `oom` and left out of answers.json.
+`--timeout-scale S --timeout-floor F` replaces the uniform `--timeout` with a
+per-test `max(F, S x recorded seconds)` (pytest-timeout markers added by
+`brreport` from `BR_TIMEOUTS`): it bounds runs of non-terminating patches, whose
+failing set does not depend on the timeout; a slowdown's label does, so those
+keep a uniform timeout. A stop file is re-checked after the memory gate.
 About 140-230 s per patch per core on a 12-core host.
 
 ## Generating a stress corpus

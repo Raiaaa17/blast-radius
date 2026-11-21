@@ -137,6 +137,9 @@ def run_suite(args, tree: Path, out_dir: Path, name: str, cpu: str | None) -> di
     for stale in (report, out_dir / f"{name}.report.jsonl"):
         if stale.exists():
             stale.unlink()
+    if args.timeout_scale:
+        profile = {"floor": args.timeout_floor, "scale": args.timeout_scale, "seconds": args.recorded}
+        (out_dir / f"{name}.timeouts.json").write_text(json.dumps(profile))
     container = f"br-eval-label-{os.getpid()}-{name}"
     cidfile = out_dir / f"{name}.cid"
     if cidfile.exists():
@@ -168,6 +171,7 @@ def run_suite(args, tree: Path, out_dir: Path, name: str, cpu: str | None) -> di
         "SKIP_INTEGRATION=0",
         "-e",
         f"BR_REPORT=/out/{name}.report.json",
+    ] + (["-e", f"BR_TIMEOUTS=/out/{name}.timeouts.json"] if args.timeout_scale else []) + [
         "-v",
         f"{tree}:/src:ro",
         "-v",
@@ -185,6 +189,8 @@ def run_suite(args, tree: Path, out_dir: Path, name: str, cpu: str | None) -> di
             # Host memory is shared by several workers: start only with enough headroom,
             # and hold the gate while the new run ramps up so the next check sees it.
             wait_for_memory(args.min_free_gb)
+            if args.stop_file and Path(args.stop_file).exists():
+                return {"stopped": True}  # drained while waiting for memory: start nothing
             started = time.time()
             process = subprocess.Popen(command, stdout=log_handle, stderr=subprocess.STDOUT)
             ramp_until = time.time() + args.ramp
@@ -238,6 +244,8 @@ def label_one(args, tests: list[dict], patch: Path, kind: str, cpu: str | None) 
         shutil.rmtree(work)
     shutil.copytree(DATA / "work" / "pristine", work, symlinks=True)
     detail: dict = {"commit": commit, "kind": kind, "timeout": args.timeout}
+    if args.timeout_scale:
+        detail["timeout_profile"] = {"floor": args.timeout_floor, "scale": args.timeout_scale}
     # The tree is not a git repository but may sit inside one; without a
     # ceiling, `git apply` would resolve paths against that outer repository
     # and silently skip every file ("outside the directory").
@@ -271,6 +279,10 @@ def label_one(args, tests: list[dict], patch: Path, kind: str, cpu: str | None) 
     subprocess.run(["chmod", "-R", "a+rX", str(work)], check=True)
     run = run_suite(args, work, DATA / "work" / "runs", commit, cpu)
     shutil.rmtree(work)
+    if run.get("stopped"):
+        return {"stopped": True}
+    for leftover in (DATA / "work" / "runs").glob(f"{commit}.timeouts.json"):
+        leftover.unlink()
     detail.update({k: v for k, v in run.items() if k != "report"})
     report = run.get("report")
     by_file: dict[str, list[dict]] = {}
@@ -347,6 +359,14 @@ def main() -> int:
     parser.add_argument("--stop-file", help="when this file exists, start no new run (drain and exit)")
     parser.add_argument("--timeout", type=int, default=300, help="pytest-timeout per test")
     parser.add_argument("--wall", type=int, default=1800, help="hard wall limit per suite run")
+    parser.add_argument(
+        "--timeout-scale",
+        type=float,
+        default=0.0,
+        help="per-test timeout max(--timeout-floor, scale x recorded seconds) instead of --timeout "
+        "(bounds runs of non-terminating patches; a slowdown's label then depends on it)",
+    )
+    parser.add_argument("--timeout-floor", type=float, default=20.0)
     parser.add_argument("--xdist", type=int, default=0, help="pytest -n N (0 = serial)")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--per-file", action="store_true", help="one pytest process per test file")
@@ -357,6 +377,7 @@ def main() -> int:
     args = parser.parse_args()
 
     tests = json.loads(args.tests.read_text())["tests"]
+    args.recorded = {test["id"]: test["seconds"] for test in tests}
     ensure_pristine(args.sqlglot, DATA / "work" / "pristine")
     commits_dir = args.corpus / "commits"
     labels_dir = args.corpus / args.labels_dir
@@ -399,6 +420,8 @@ def main() -> int:
             detail = label_one(args, tests, patch, kinds.get(patch.stem, "unknown"), cpu)
         finally:
             slots.put(cpu)
+        if detail.get("stopped"):
+            return patch.stem
         (labels_dir / f"{patch.stem}.json").write_text(json.dumps(detail, indent=1))
         with answers_lock:  # keep answers.json current so a partial corpus is usable
             write_answers(args.corpus, labels_dir)

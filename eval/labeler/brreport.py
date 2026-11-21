@@ -45,6 +45,21 @@ def _stream(nodeid, entry):
             handle.write(json.dumps({"nodeid": nodeid, **entry}) + "\n")
 
 
+def pytest_collection_modifyitems(config, items):
+    """BR_TIMEOUTS = path of {"floor": F, "scale": S, "seconds": {nodeid: s}}: per-test timeout
+    max(F, S * s) instead of the uniform --timeout (used to bound runs of non-terminating patches)."""
+    spec = os.environ.get("BR_TIMEOUTS")
+    if not spec:
+        return
+    import pytest
+
+    with open(spec) as handle:
+        data = json.load(handle)
+    for item in items:
+        seconds = data["seconds"].get(item.nodeid.split("[")[0], 0.0)
+        item.add_marker(pytest.mark.timeout(max(data["floor"], data["scale"] * seconds)))
+
+
 def pytest_collectreport(report):
     if report.failed:
         error = {"nodeid": report.nodeid, "text": (getattr(report, "longreprtext", "") or "")[-2000:]}
