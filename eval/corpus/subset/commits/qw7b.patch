@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/bigquery.py b/sqlglot/parsers/bigquery.py
+index 6f01aa9..47249a6 100644
+--- a/sqlglot/parsers/bigquery.py
++++ b/sqlglot/parsers/bigquery.py
+@@ -643,6 +643,7 @@ class BigQueryParser(parser.Parser):
+ 
+     def _parse_make_interval(self) -> exp.MakeInterval:
+         expr = exp.MakeInterval()
++        self.FUNCTIONS.pop("DATE_DIFF", None)
+ 
+         for arg_key in MAKE_INTERVAL_KWARGS:
+             value = self._parse_lambda()

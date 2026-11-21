@@ -1712,6 +1712,10 @@
    ],
    "kind": "fixture:modify"
   },
+  "0f9s": {
+   "failing": [],
+   "kind": "outside:executed"
+  },
   "0fwh": {
    "failing": [],
    "kind": "comment:in-string"
@@ -1812,9 +1816,22 @@
    "failing": [],
    "kind": "file:mode"
   },
+  "14hb": {
+   "failing": [
+    131,
+    424
+   ],
+   "kind": "refactor:rename-method"
+  },
   "1861": {
    "failing": [],
    "kind": "comment:code"
+  },
+  "192b": {
+   "failing": [
+    855
+   ],
+   "kind": "dispatch:add-parser-function"
   },
   "19tz": {
    "failing": [],
@@ -3429,6 +3446,10 @@
    "failing": [],
    "kind": "file:rename-test"
   },
+  "1nct": {
+   "failing": [],
+   "kind": "expr:arg-types"
+  },
   "1p2q": {
    "failing": [],
    "kind": "fixture:hash-line"
@@ -3521,6 +3542,10 @@
    ],
    "kind": "import:remove"
   },
+  "2r0h": {
+   "failing": [],
+   "kind": "dialect:new"
+  },
   "2tgo": {
    "failing": [],
    "kind": "code:stmt-delete"
@@ -3550,6 +3575,10 @@
     1473
    ],
    "kind": "code:negate"
+  },
+  "341l": {
+   "failing": [],
+   "kind": "sweep:comment"
   },
   "38f5": {
    "failing": [],
@@ -4932,6 +4961,64 @@
    "failing": [],
    "kind": "sig:remove-param"
   },
+  "3eey": {
+   "failing": [
+    919,
+    921,
+    927,
+    1241,
+    1242,
+    1243,
+    1244,
+    1245,
+    1246,
+    1247,
+    1248,
+    1249,
+    1250,
+    1251,
+    1252,
+    1253,
+    1254,
+    1255,
+    1256,
+    1257,
+    1258,
+    1259,
+    1260,
+    1261,
+    1262,
+    1263,
+    1264,
+    1265,
+    1266,
+    1267,
+    1268,
+    1269,
+    1270,
+    1271,
+    1272,
+    1273,
+    1274,
+    1275,
+    1276,
+    1277,
+    1278,
+    1279,
+    1280,
+    1281,
+    1282,
+    1283,
+    1284,
+    1285,
+    1286,
+    1287,
+    1288,
+    1289,
+    1290
+   ],
+   "kind": "pollute:module-container"
+  },
   "3gam": {
    "failing": [],
    "kind": "docstring"
@@ -5182,6 +5269,17 @@
     1612
    ],
    "kind": "file:delete-src"
+  },
+  "3pdk": {
+   "failing": [
+    18,
+    131,
+    325,
+    366,
+    773,
+    851
+   ],
+   "kind": "dispatch:research-c2"
   },
   "3uy1": {
    "failing": [],
@@ -6445,9 +6543,27 @@
    ],
    "kind": "code:raise"
   },
+  "4zjh": {
+   "failing": [],
+   "kind": "pollute:class-container"
+  },
+  "5bq5": {
+   "failing": [
+    1420
+   ],
+   "kind": "format:bom"
+  },
+  "5ch5": {
+   "failing": [],
+   "kind": "format:no-eol"
+  },
   "5y3s": {
    "failing": [],
    "kind": "noop:annotation"
+  },
+  "5yx5": {
+   "failing": [],
+   "kind": "file:submodule"
   },
   "666k": {
    "failing": [
@@ -6777,11 +6893,25 @@
    "failing": [],
    "kind": "file:add-test"
   },
+  "70nf": {
+   "failing": [],
+   "kind": "fixture:blank-line"
+  },
   "74rj": {
    "failing": [
     1375
    ],
    "kind": "file:delete-fixture"
+  },
+  "7709": {
+   "failing": [],
+   "kind": "test:weaken"
+  },
+  "7qb6": {
+   "failing": [
+    1325
+   ],
+   "kind": "file:quoted-path"
   },
   "7rdh": {
    "failing": [
@@ -6794,6 +6924,10 @@
     636
    ],
    "kind": "test:assert-edit"
+  },
+  "843x": {
+   "failing": [],
+   "kind": "dispatch:add-transform"
   },
   "8mzy": {
    "failing": [
@@ -6847,11 +6981,21 @@
    "failing": [],
    "kind": "import:unused"
   },
+  "a1et": {
+   "failing": [
+    1291
+   ],
+   "kind": "sweep:mixed"
+  },
   "ak31": {
    "failing": [
     1313
    ],
    "kind": "fixture:add-invalid"
+  },
+  "bj1r": {
+   "failing": [],
+   "kind": "dispatch:add-sql-method"
   },
   "bobz": {
    "failing": [
@@ -6864,6 +7008,10 @@
   "bt29": {
    "failing": [],
    "kind": "class:add-method"
+  },
+  "cqvs": {
+   "failing": [],
+   "kind": "fixture:trailing-space"
   },
   "d2k6": {
    "failing": [
@@ -9989,6 +10137,18 @@
   "hbl6": {
    "failing": [],
    "kind": "table:reorder"
+  },
+  "qw7b": {
+   "failing": [
+    27,
+    85,
+    674
+   ],
+   "kind": "pollute:research-c1"
+  },
+  "vkpa": {
+   "failing": [],
+   "kind": "noop:empty"
   }
  }
 }

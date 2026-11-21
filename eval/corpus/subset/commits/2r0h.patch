@@ -1,0 +1,38 @@
+diff --git a/sqlglot/dialects/__init__.py b/sqlglot/dialects/__init__.py
+index 16bcf6c..d4e304e 100644
+--- a/sqlglot/dialects/__init__.py
++++ b/sqlglot/dialects/__init__.py
+@@ -78,6 +78,7 @@ DIALECTS = [
+     "Dune",
+     "Exasol",
+     "Fabric",
++    "Hhvds",
+     "Hive",
+     "Materialize",
+     "MySQL",
+diff --git a/sqlglot/dialects/dialect.py b/sqlglot/dialects/dialect.py
+index fed01b2..6b9b875 100644
+--- a/sqlglot/dialects/dialect.py
++++ b/sqlglot/dialects/dialect.py
+@@ -131,6 +131,7 @@ class Dialects(str, Enum):
+     TERADATA = "teradata"
+     TRINO = "trino"
+     TSQL = "tsql"
++    HHVDS = "hhvds"
+     EXASOL = "exasol"
+ 
+ 
+diff --git a/sqlglot/dialects/hhvds.py b/sqlglot/dialects/hhvds.py
+new file mode 100644
+index 0000000..40da99b
+--- /dev/null
++++ b/sqlglot/dialects/hhvds.py
+@@ -0,0 +1,8 @@
++from __future__ import annotations
++
++from sqlglot.dialects.duckdb import DuckDB
++
++
++class Hhvds(DuckDB):
++    """Hhvds: a DuckDB variant."""
++    pass

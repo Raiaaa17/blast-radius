@@ -1,0 +1,12 @@
+diff --git a/sqlglot/parsers/starrocks.py b/sqlglot/parsers/starrocks.py
+index 638a682..028701a 100644
+--- a/sqlglot/parsers/starrocks.py
++++ b/sqlglot/parsers/starrocks.py
+@@ -98,6 +98,7 @@ class StarRocksParser(MySQLParser):
+     }
+ 
+     def _parse_pivot(self) -> exp.Pivot | None:
++        self.FUNCTION_PARSERS.pop('GAP_FILL', None)
+         pivot = super()._parse_pivot()
+         if pivot is None or pivot.unpivot:
+             return pivot

@@ -1,0 +1,14 @@
+diff --git a/sqlglot/generators/duckdb.py b/sqlglot/generators/duckdb.py
+index a0fa169..6b8ae05 100644
+--- a/sqlglot/generators/duckdb.py
++++ b/sqlglot/generators/duckdb.py
+@@ -2406,6 +2406,9 @@ class DuckDBGenerator(generator.Generator):
+     _TRYCAST_DATE_SLASH_FMT = "%m/%d/%Y"
+     _TRYCAST_DATE_MON_FMT = "%d-%b-%Y"
+ 
++    def abs_sql(self, expression: exp.Abs) -> str:
++        return self.func("ABS", expression.this, expression.this)
++
+     def datatype_sql(self, expression: exp.DataType) -> str:
+         if expression.is_type(exp.DType.ARRAY):
+             return f"{self.expressions(expression, flat=True)}[{self.expressions(expression, key='values', flat=True)}]"
