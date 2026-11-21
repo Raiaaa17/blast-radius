@@ -25,6 +25,10 @@ class Unit:
     qualname: str  # function or class qualname; "" for the module
     old_code: types.CodeType | None = None
     names: set[str] | None = field(default=None)  # bound names a class/module change rebinds; None = unknown
+    new_code: types.CodeType | None = None
+    ranges: list | None = None  # function: old-file line ranges a test must reach; None = whole function
+    old_node: object = None  # function: its ast node in the old and new trees (None if not found)
+    new_node: object = None
 
 
 @dataclass
@@ -206,12 +210,21 @@ def analyze_python(old_text: str, new_text: str, filename: str) -> FileAnalysis:
         return FileAnalysis(neutral=True)
     units: list[Unit] = []
     trees = None
-    for kind, old, _new in diffs:
-        if kind == "function":
-            units.append(Unit("function", old.co_qualname, old))
-            continue
+    for kind, old, new in diffs:
         if trees is None:
             trees = (ast.parse(old_text), ast.parse(new_text))
+        if kind == "function":
+            try:
+                ranges = changed_ranges(trees[0], trees[1], old, new)
+            except Exception:  # noqa: BLE001 - fall back to the whole function
+                ranges = None
+            try:
+                old_node, new_node = _find_def(trees[0], old), _find_def(trees[1], new)
+            except Exception:  # noqa: BLE001
+                old_node = new_node = None
+            units.append(Unit("function", old.co_qualname, old, new_code=new, ranges=ranges,
+                              old_node=old_node, new_node=new_node))
+            continue
         if kind == "module":
             units.append(Unit("module", "", old, changed_names(trees[0].body, trees[1].body)))
         else:
@@ -222,3 +235,204 @@ def analyze_python(old_text: str, new_text: str, filename: str) -> FileAnalysis:
                 names = changed_names(old_body, new_body)
             units.append(Unit("class", old.co_qualname, old, names))
     return FileAnalysis(neutral=False, units=units)
+
+
+# ---------------------------------------------------------------- changed statements
+#
+# A function-body change is observable by a test only if the test reaches a
+# changed statement. Execution under the new code is identical to the old one
+# until control reaches the first changed instruction, so the tests that never
+# executed any line of a changed statement (in the pristine run) cannot see
+# the change. changed_ranges() returns the old-file line ranges that must have
+# executed for a change to be reached: changed statements' spans, the header of
+# a compound statement whose header changed, and, for inserted statements, the
+# statements around the insertion point (control reaches it from the one before
+# or the block's header). None means "use the whole function".
+
+_NO_CODE = (ast.Pass, ast.Global, ast.Nonlocal)
+
+
+def _is_noop(stmt: ast.stmt) -> bool:
+    """Statements that may compile to no instruction (so no line event)."""
+    if isinstance(stmt, _NO_CODE):
+        return True
+    return isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)
+
+
+def _span(node) -> tuple[int, int]:
+    return (node.lineno, getattr(node, "end_lineno", None) or node.lineno)
+
+
+_BLOCK_FIELDS = ("body", "orelse", "finalbody", "handlers", "cases")
+
+
+def _header_dump(stmt: ast.stmt) -> str:
+    """The statement with its nested blocks blanked out."""
+    fields = {}
+    for name, value in ast.iter_fields(stmt):
+        if name in _BLOCK_FIELDS:
+            continue
+        fields[name] = ast.dump(value, include_attributes=False) if isinstance(value, ast.AST) else (
+            [ast.dump(v, include_attributes=False) if isinstance(v, ast.AST) else repr(v) for v in value]
+            if isinstance(value, list)
+            else repr(value)
+        )
+    return f"{type(stmt).__name__}{sorted(fields.items())}"
+
+
+def _header_span(stmt: ast.stmt) -> tuple[int, int]:
+    """Lines of a compound statement's header (up to the start of its first block)."""
+    end = stmt.lineno
+    for name, value in ast.iter_fields(stmt):
+        if name in _BLOCK_FIELDS:
+            continue
+        nodes = value if isinstance(value, list) else [value]
+        for node in nodes:
+            if isinstance(node, ast.AST) and getattr(node, "end_lineno", None):
+                end = max(end, node.end_lineno)
+    return (stmt.lineno, end)
+
+
+def _stmt_ranges(stmt: ast.stmt, anchors: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Lines whose execution means control reached `stmt`."""
+    if _is_noop(stmt):
+        return list(anchors)
+    if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        start = min([stmt.lineno] + [d.lineno for d in stmt.decorator_list])
+        return [(start, stmt.end_lineno or stmt.lineno)]
+    return [_span(stmt)]
+
+
+def _diff_stmt(x: ast.stmt, y: ast.stmt, anchors) -> list | None:
+    if type(x) is not type(y):
+        return _stmt_ranges(x, anchors)
+    if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        # A nested function: its body is its own code unit; here only the
+        # def statement itself (defaults, decorators) matters.
+        if _header_dump(x) != _header_dump(y) or [ast.dump(d) for d in x.decorator_list] != [
+            ast.dump(d) for d in y.decorator_list
+        ]:
+            return _stmt_ranges(x, anchors)
+        return []
+    if isinstance(x, ast.ClassDef):
+        return _stmt_ranges(x, anchors)
+    blocks = [name for name in _BLOCK_FIELDS if isinstance(getattr(x, name, None), list)]
+    if not blocks:
+        return _stmt_ranges(x, anchors)
+    out: list = []
+    header = _header_span(x)
+    if _header_dump(x) != _header_dump(y):
+        out.append(header)
+    # What proves control reached this statement's blocks: its header when the
+    # header surely has instructions; a try statement has none, nor has an
+    # if/while on a constant (folded away), so fall back to the whole statement
+    # or the enclosing anchors.
+    if isinstance(x, (ast.Try, getattr(ast, "TryStar", ast.Try))):
+        inner = [_span(x)] + list(anchors)
+    elif isinstance(x, (ast.If, ast.While)) and isinstance(x.test, ast.Constant):
+        inner = list(anchors)
+    else:
+        inner = [header]
+    for name in blocks:
+        a, b = getattr(x, name), getattr(y, name)
+        if name in ("handlers", "cases"):
+            if len(a) != len(b):
+                return _stmt_ranges(x, anchors)
+            for h, k in zip(a, b):
+                if _header_dump(h) != _header_dump(k):
+                    out.append(_header_span(h) if hasattr(h, "lineno") else header)
+                hanchor = ([_header_span(h)] if hasattr(h, "lineno") else []) + inner
+                got = _diff_block(h.body, k.body, hanchor)
+                if got is None:
+                    return None
+                out += got
+            continue
+        got = _diff_block(a, b, inner)
+        if got is None:
+            return None
+        out += got
+    return out
+
+
+def _diff_block(a: list, b: list, anchors: list) -> list | None:
+    da = [ast.dump(s, include_attributes=False) for s in a]
+    db = [ast.dump(s, include_attributes=False) for s in b]
+    if da == db:
+        return []
+    out: list = []
+    matcher = difflib.SequenceMatcher(a=da, b=db, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        if tag == "replace" and i2 - i1 == j2 - j1:
+            for x, y in zip(a[i1:i2], b[j1:j2]):
+                got = _diff_stmt(x, y, anchors)
+                if got is None:
+                    return None
+                out += got
+            continue
+        for x in a[i1:i2]:
+            out += _stmt_ranges(x, anchors)
+        if j2 > j1:
+            # Inserted statements: reached from the statement before them, or
+            # from the block's header when they open the block; the statement
+            # after them is reached only through them.
+            if i1 > 0:
+                out += _stmt_ranges(a[i1 - 1], anchors)
+            else:
+                out += list(anchors)
+            if i2 < len(a):
+                out += _stmt_ranges(a[i2], anchors)
+    return out
+
+
+def _find_def(tree: ast.Module, code: types.CodeType):
+    """The FunctionDef/Lambda node of a code object, by qualname and first line."""
+    target = code.co_qualname
+    found = []
+
+    def visit(body_owner, prefix: str) -> None:
+        for node in ast.iter_child_nodes(body_owner):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                q = f"{prefix}{node.name}"
+                if q == target:
+                    found.append(node)
+                visit(node, q + ".<locals>.")
+            elif isinstance(node, ast.ClassDef):
+                visit(node, f"{prefix}{node.name}.")
+            elif isinstance(node, ast.Lambda):
+                if f"{prefix}<lambda>" == target and node.lineno == code.co_firstlineno:
+                    found.append(node)
+                visit(node, f"{prefix}<lambda>.<locals>.")
+            else:
+                visit(node, prefix)
+
+    visit(tree, "")
+    if len(found) == 1:
+        return found[0]
+    # Several defs with one qualname (conditional definitions): match the line.
+    for node in found:
+        start = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])])
+        if start == code.co_firstlineno or node.lineno == code.co_firstlineno:
+            return node
+    return None
+
+
+def changed_ranges(old_tree, new_tree, old_code, new_code) -> list[tuple[int, int]] | None:
+    old_node = _find_def(old_tree, old_code)
+    new_node = _find_def(new_tree, new_code)
+    if old_node is None or new_node is None or type(old_node) is not type(new_node):
+        return None
+    if isinstance(old_node, ast.Lambda):
+        return None
+    if ast.dump(old_node.args, include_attributes=False) != ast.dump(new_node.args, include_attributes=False):
+        return None
+    if (old_node.returns is None) != (new_node.returns is None):
+        return None
+    body_a, body_b = old_node.body, new_node.body
+    # Reaching the top level of the body = the function ran at all.
+    entry = [_span(old_node)]
+    got = _diff_block(body_a, body_b, entry)
+    if got is None or not got:
+        return None
+    return sorted(set(got))

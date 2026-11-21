@@ -22,14 +22,16 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
-def run(root: str, ids: list[str], emit) -> None:
+def run(root: str, ids: list[str], emit, fresh: bool = True) -> None:
+    """Run the tests; with fresh=False the modules are already imported (warm process)."""
     if str(HERE) not in sys.path:
         sys.path.insert(0, str(HERE))
     from inline_pool import install_inline_pool
 
     install_inline_pool()
-    os.chdir(root)
-    sys.path.insert(0, root)
+    if fresh:
+        os.chdir(root)
+        sys.path.insert(0, root)
     import importlib
     import unittest
 
@@ -40,6 +42,9 @@ def run(root: str, ids: list[str], emit) -> None:
 
     statuses: dict[int, str] = {}
 
+    last_stop = [time.process_time()]
+    last_class = [None]
+
     class Result(unittest.TestResult):
         index: dict[int, int] = {}
         current: int | None = None
@@ -47,17 +52,24 @@ def run(root: str, ids: list[str], emit) -> None:
 
         def startTest(self, test):
             super().startTest(test)
+            now = time.process_time()
+            cls = f"{type(test).__module__}.{type(test).__qualname__}"
+            if cls != last_class[0]:
+                emit(f"C {cls} {now - last_stop[0]:.4f}")
+                last_class[0] = cls
             self.current = self.index.get(id(test))
-            self.t0 = time.process_time()
+            self.t0 = now
             if self.current is not None:
                 statuses[self.current] = "passed"
                 emit(f"S {self.current}")
 
         def stopTest(self, test):
             super().stopTest(test)
+            now = time.process_time()
             if self.current is not None:
-                emit(f"E {self.current} {statuses[self.current]} {time.process_time() - self.t0:.4f}")
+                emit(f"E {self.current} {statuses[self.current]} {now - self.t0:.4f}")
             self.current = None
+            last_stop[0] = now
 
         def _mark(self, status: str) -> None:
             if self.current is not None and statuses.get(self.current) in ("passed", "skipped"):

@@ -14,20 +14,37 @@ ARG SQLGLOT_SHA=eb11aec4be8cb2122afe713a4816662c3f0fb2fa
 COPY selector/fetch_sqlglot.py /build/fetch_sqlglot.py
 RUN python /build/fetch_sqlglot.py "$SQLGLOT_SHA" /opt/sqlglot
 
-# Build-time maps: per-test coverage of the pristine tree. Only the build-time
-# scripts are copied first, so runtime-only changes keep this layer cached.
+# Precompiled bytecode (plain and pytest-rewritten) in the pristine tree: the
+# run disk is read-only, so nothing can be cached at run time.
+COPY runner /app/runner
+RUN sh /app/runner/build.sh /opt/sqlglot
+
+# Build-time maps of the pristine tree. Only the build-time scripts are copied
+# first, so runtime-only changes keep these layers cached.
+#  maps.pkl     per-test line coverage, class-attribute reads, file opens (traced run)
+#  static.pkl   code objects, import graph, class holders
+#  zygote.pkl   verdict and CPU of every test through the runtime's warm verifier
+#               (with every function's code swapped for an identical copy)
+#  profiles.pkl comparison-site value profiles of every test (instrumented run)
+#  state.pkl    which import-state slots depend on the hash seed / the process
 COPY selector/build_maps.py selector/merge_maps.py selector/inline_pool.py selector/static_index.py \
-     selector/build_timing.py selector/verify.py selector/runner_child.py /app/selector/
+     selector/cachereset.py selector/zygote.py selector/runner_child.py selector/build_zygote.py \
+     selector/profiles.py selector/build_profiles.py selector/statediff.py /app/selector/
 # Recorded test seconds, only to balance the build's shards.
 COPY sample/tests.json /app/selector/sample_tests.json
 RUN SKIP_INTEGRATION=0 python /app/selector/build_maps.py /opt/sqlglot /app/maps --jobs 4 \
  && python /app/selector/static_index.py /opt/sqlglot /app/maps \
- && python -m compileall -q -j 4 /opt/sqlglot /app/selector \
- && SKIP_INTEGRATION=0 python /app/selector/build_timing.py /opt/sqlglot /app/maps --jobs 4 \
+ && SKIP_INTEGRATION=0 python /app/selector/build_zygote.py /opt/sqlglot /app/maps --jobs 4 \
+ && SKIP_INTEGRATION=0 python /app/selector/build_profiles.py /opt/sqlglot /app/maps --jobs 4 --min-seconds 0 \
+ && python /app/selector/statediff.py /opt/sqlglot /app/maps/state.pkl \
  && chmod -R a+rX /opt/sqlglot /app
 
+# Static patch analysis (neutrality proofs, data-file readers).
+COPY staticeq /app/staticeq
+RUN sh /app/staticeq/build.sh /opt/sqlglot
+
 COPY selector/ /app/selector/
-RUN python -m compileall -q /app/selector && chmod -R a+rX /app/selector
+RUN python -m compileall -q /app/selector /app/staticeq && chmod -R a+rX /app
 
 ENV SKIP_INTEGRATION=0
 CMD ["python", "/app/selector/main.py"]
