@@ -76,13 +76,19 @@ def worker(root: Path, ids: list[str], out: Path) -> None:
     own: dict[int, dict] = {}
     status: dict[int, str] = {}
     gaps: list[tuple] = []
-    state = {"prev": None, "cur": None}
+    state = {"prev": None, "cur": None, "caches": None}
+    from cachereset import reset as reset_caches
     recorder.bucket = {}
 
     def emit(line: str) -> None:
         parts = line.split()
         if parts[0] == "S":
             i = int(parts[1])
+            if state["caches"] is None:
+                from cachereset import find_caches
+
+                state["caches"] = find_caches()
+            reset_caches(state["caches"])
             gaps.append((state["prev"], i, recorder.bucket))
             recorder.bucket = {}
             recorder.seen = set()

@@ -38,6 +38,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CO_OPTIMIZED = 0x0001
 BETWEEN_TESTS_S = 20.0  # module import / class fixture allowance between tests
+MAX_STOPS = 2  # timeouts/crashes after which a commit's remaining tests stay unverified
 
 
 def code_key(code: types.CodeType) -> tuple[str, str, int]:
@@ -369,10 +370,16 @@ class Job:
         self.cpu: dict[str, float] = {}
         self.class_cpu: dict[str, float] = {}
         self.gave_up = False
+        self.stops = 0
         self.child_cpu = 0.0
 
 
 def _child_main(job: Job, ids: list[str], w: int) -> None:
+    try:  # if memory runs out, the kernel kills a child, not the selector
+        with open("/proc/self/oom_score_adj", "w") as handle:
+            handle.write("1000")
+    except OSError:
+        pass
     devnull = os.open(os.devnull, os.O_RDWR)
     for fd in (0, 1, 2):
         os.dup2(devnull, fd)
@@ -440,9 +447,16 @@ def run_jobs(jobs: list[Job], parallel: int, deadline: float, log=None) -> None:
         if st["started"] is not None:
             tid = job.ids[st["batch"][st["started"]]]
             job.verdicts[tid] = "timeout" if timed_out else "crash"
+            job.stops += 1
             if log:
                 log(f"{job.key}: child stopped on {tid}: {job.verdicts[tid]}")
-            queue.appendleft(job)  # continue with the rest in a fresh child
+            if job.stops >= MAX_STOPS:
+                # A patch that hangs or kills test after test: keep the rest unverified.
+                job.gave_up = True
+                if log:
+                    log(f"{job.key}: {job.stops} tests stopped; rest unverified")
+            else:
+                queue.appendleft(job)  # continue with the rest in a fresh child
         else:
             job.gave_up = True
             if log:

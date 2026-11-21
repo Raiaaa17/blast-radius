@@ -201,6 +201,10 @@ def worker(src: Path, files: list[str], out_path: Path) -> None:
 
     classes = _collect_classes(modules)
     attr_table, _ = _install_attr_recorders(classes)
+    from cachereset import find_caches, reset as reset_caches
+
+    caches = find_caches()
+    print(f"[maps] {len(caches)} process-wide caches reset before every test", file=sys.stderr)
 
     # File ids for line coverage: every .py under sqlglot/ and tests/.
     file_ids: dict[str, int] = {}
@@ -293,6 +297,7 @@ def worker(src: Path, files: list[str], out_path: Path) -> None:
             tid = self._id(test)
             # Whatever ran since the last test (class/module fixtures) is a gap.
             gaps.append((self.last, tid, state.lines, state.attrs, state.events))
+            reset_caches(caches)
             state.lines, state.attrs, state.events = set(), set(), set()
             mon.restart_events()
             self.current = tid

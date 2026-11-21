@@ -34,6 +34,7 @@ import analyze  # noqa: E402
 import pack  # noqa: E402
 import patch as patchlib  # noqa: E402
 import profiles  # noqa: E402
+import statediff  # noqa: E402
 import verify  # noqa: E402
 import zygote  # noqa: E402
 
@@ -108,6 +109,7 @@ class Index:
         self.modules: dict[str, str] = s["modules"]
         self.holders: dict[str, set[str]] = s["holders"]
         self._closure: dict[str, set[str]] = {}
+        self.codes_by_name: dict[str, list] | None = None
         z: dict = {}
         if (MAPS / "zygote.pkl").exists():
             with open(MAPS / "zygote.pkl", "rb") as handle:
@@ -116,6 +118,19 @@ class Index:
         self.class_cpu: dict[str, float] = z.get("class_cpu", {})
         self.warm_import_keys: set = z.get("import_keys", set())
         self.fresh_import: dict[str, float] = z.get("fresh_import", {})
+        self.attrs: dict = m["attrs"]
+        self.owner_mro: dict[str, list[str]] = m["owner_mro"]
+        self.state: dict = {}
+        self.state_unordered: set = set()
+        self.state_unstable: set = set()
+        self.state_mro: dict[str, list[str]] = {}
+        if (MAPS / "state.pkl").exists():
+            with open(MAPS / "state.pkl", "rb") as handle:
+                st = pickle.load(handle)
+            self.state = st["slots"]
+            self.state_unordered = st["unordered"]
+            self.state_unstable = st["unstable"]
+            self.state_mro = st["mro"]
         self.profile_sites: dict = {}
         self.profiled = 0
         self.uninstrumented: set[str] = set()
@@ -176,6 +191,10 @@ class Impact:
         self.py_files: list[str] = []
         self.data_files: list[str] = []
         self.units: list[tuple[int, list | None]] = []  # (mask, comparison-operator edits or None)
+        # Class-body / module-level / import-time edits of sqlglot modules: resolved
+        # by diffing the patched import state; (fallback mask or None = broad, note).
+        self.state_units: list[tuple[int | None, str]] = []
+        self.state_modules: set[str] = set()
 
     def add(self, mask: int, sites: list | None = None) -> None:
         self.mask |= mask
@@ -212,15 +231,23 @@ def name_impact(ix: Index, rel: str, names: set[str]) -> int:
     mod = module_name(rel)
     mask = ix.import_sensitive | ix.unreliable
     files = {rel} | {ix.modules[m] for m in ix.importer_closure(mod) if m in ix.modules}
-    for path in files:
-        pmod = module_name(path)
-        for _, kind, qn, first, last, cnames in ix.codes_by_file.get(path, ()):
-            if not (cnames & names):
+    if ix.codes_by_name is None:
+        index: dict[str, list] = defaultdict(list)
+        for entry in ix.codes:
+            for name in entry[5]:
+                index[name].append(entry)
+        ix.codes_by_name = index
+    seen = set()
+    for name in names:
+        for entry in ix.codes_by_name.get(name, ()):
+            path, kind, qn, first, last, _ = entry
+            if path not in files or id(entry) in seen:
                 continue
+            seen.add(id(entry))
             if kind == "function":
                 mask |= ix.lines_mask(path, first, last)
             elif kind == "class":
-                mask |= ix.class_use(f"{pmod}:{qn}")
+                mask |= ix.class_use(f"{module_name(path)}:{qn}")
     # The rebound objects themselves: a function's callers, a class's users.
     for _, kind, qn, first, last, _ in ix.codes_by_file.get(rel, ()):
         if qn in names:
@@ -325,8 +352,9 @@ def assess(
             if unit.kind == "function":
                 code = unit.old_code
                 if not is_test and (path, code.co_qualname, code.co_firstlineno) in ix.import_codes:
-                    impact.broad.append(f"import-time function {path}:{unit.qualname}")
-                    continue
+                    # It ran while sqlglot was imported: what it built is in the import state.
+                    impact.state_units.append((None, f"import-time function {path}:{unit.qualname}"))
+                    impact.state_modules.add(mod)
                 if (path, code.co_qualname, code.co_firstlineno) in ix.warm_import_keys:
                     impact.not_hot(f"ran at import {path}:{unit.qualname}")
                 if unit.ranges:
@@ -361,16 +389,13 @@ def assess(
                 impact.add(mask)
                 impact.notes.append(f"test {unit.kind} {path}:{unit.qualname}: {bin(mask).count('1')}")
             elif unit.kind == "class":
-                mask = class_impact(ix, path, unit.qualname, unit.names)
-                impact.add(mask)
-                impact.notes.append(f"class {path}:{unit.qualname} {unit.names}: {bin(mask).count('1')}")
+                impact.state_units.append((None, f"class {path}:{unit.qualname} {unit.names}"))
+                impact.state_modules.add(mod)
             else:
-                if unit.names is None:
-                    impact.broad.append(f"module-level {path}")
-                    continue
-                mask = name_impact(ix, path, unit.names)
-                impact.add(mask)
-                impact.notes.append(f"module {path} {sorted(unit.names)}: {bin(mask).count('1')}")
+                impact.state_units.append(
+                    (None, f"module {path} {sorted(unit.names) if unit.names is not None else '?'}")
+                )
+                impact.state_modules.add(mod)
     return impact
 
 
@@ -398,6 +423,51 @@ def prove(ix: Index, impact: Impact) -> int:
                     proven &= ~tests
         removable &= ~mask | proven
     return removable
+
+
+def slots_mask(ix: Index, slots: list, modules: set[str]) -> tuple[int | None, list[str]]:
+    """Tests that read any of the changed import-state slots (None = every test)."""
+    mask = ix.import_sensitive | ix.unreliable
+    notes: list[str] = []
+    check = [s for s in slots if s not in ix.state_unstable]
+    # Slots whose value differs from process to process (a class-body loop
+    # variable left over from iterating a set, ...) cannot be compared: count
+    # them as changed when the patch edits their own module.
+    for slot in ix.state_unstable:
+        mod = slot[1].split(":")[0] if slot[0] in ("C", "MRO") else slot[1]
+        if mod in modules:
+            check.append(slot)
+    for slot in check:
+        kind = slot[0]
+        if kind == "C":
+            _, key, attr = slot
+            if attr.startswith("__") and attr.endswith("__"):
+                mask |= ix.class_use(key)  # dunder lookups are not recorded per attribute
+                notes.append(f"{key}.{attr}")
+                continue
+            owners = ix.attrs.get((key, attr))
+            if owners:
+                for sid in owners.values():
+                    mask |= ix.sets[sid]
+            if slot not in ix.state:  # a new attribute shadows the bases' for this class
+                for base in ix.state_mro.get(key, [key])[1:]:
+                    for owner, sid in (ix.attrs.get((base, attr)) or {}).items():
+                        if key in ix.owner_mro.get(owner, ()):
+                            mask |= ix.sets[sid]
+            notes.append(f"{key.rsplit('.', 1)[-1]}.{attr}")
+        elif kind == "MRO":
+            mask |= ix.class_use(slot[1])
+            notes.append(f"mro {slot[1]}")
+        elif kind == "M":
+            _, mod, name = slot
+            if name == "<import failed>":
+                return None, [f"{mod} no longer imports"]
+            rel = ix.modules.get(mod)
+            if rel is None:
+                continue  # a new module: its importers are handled as a new file
+            mask |= name_impact(ix, rel, {name})
+            notes.append(f"{mod}.{name}")
+    return mask, notes
 
 
 def staticeq_verdict(data: bytes) -> dict | None:
@@ -493,6 +563,56 @@ def main() -> None:
             log(f"{plan.commit}: analysis failed ({error!r}); broad")
             plan.diffs, plan.files, plan.impact = [], {}, Impact()
             plan.impact.broad.append("analysis failed")
+
+    # Class-body, module-level and import-time edits: diff the patched import state.
+    zygote.warm_third_party()
+    state_jobs = []
+    for plan in plans:
+        impact = plan.impact
+        if impact.broad or not impact.state_units:
+            continue
+        if not ix.state:
+            for fallback, note in impact.state_units:
+                if fallback is None:
+                    impact.broad.append(note)
+                else:
+                    impact.add(fallback)
+                    impact.notes.append(note)
+            continue
+        root = TMP / "state" / plan.commit
+        try:
+            verify.build_tree(PRISTINE, root, plan.files)
+            state_jobs.append((plan.commit, root))
+        except Exception as error:  # noqa: BLE001
+            log(f"{plan.commit}: cannot build tree for the state diff ({error!r})")
+    diffs: dict[str, list | None] = {}
+    if state_jobs:
+        snaps = statediff.run_snapshots([("<pristine>", PRISTINE)] + state_jobs, ix.state_unordered, parallel=2,
+                                        log=log)
+        base = snaps.get("<pristine>")
+        for key, _ in state_jobs:
+            snap = snaps.get(key)
+            diffs[key] = None if base is None or snap is None else statediff.diff(base, snap)
+        log(f"state diffs for {len(state_jobs)} commits")
+    for plan in plans:
+        impact = plan.impact
+        if impact.broad or not impact.state_units:
+            continue
+        slots = diffs.get(plan.commit)
+        mask, notes = (None, ["state diff failed"]) if slots is None else slots_mask(ix, slots, impact.state_modules)
+        if mask is None:
+            # The patched tree no longer imports (or the diff failed): every test.
+            impact.broad.append(f"state: {notes}")
+        else:
+            impact.add(mask)
+            shown = notes[:12] + ([f"... {len(notes) - 12} more"] if len(notes) > 12 else [])
+            impact.notes.append(f"state {[n for _, n in impact.state_units]}: {len(slots)} slots {shown}: "
+                                f"{bin(mask).count('1')}")
+    import shutil
+
+    shutil.rmtree(TMP / "state", ignore_errors=True)
+
+    for plan in plans:
         impact = plan.impact
         if impact.broad:
             plan.candidates = set(recorded_ms)
@@ -587,7 +707,7 @@ def main() -> None:
             if (all_ms - keep_ms) * (1 - p_fail) <= cpu * 1000:
                 keep.update(verify_list)
                 verify_list = []
-        plan.verify = verify_list
+        plan.verify = sorted(verify_list)  # tests.json order, like the grader's run
         plan.mode = "hot" if hot else "fresh"
 
     for plan in plans:
@@ -616,7 +736,6 @@ def main() -> None:
         fresh_jobs.append(zygote.Job(plan.commit, ids, allowance, "fresh", root))
 
     jobs_by_key: dict[str, zygote.Job] = {}
-    zygote.warm_third_party()
     if fresh_jobs:
         log(f"fresh: verifying {sum(len(j.ids) for j in fresh_jobs)} tests over {len(fresh_jobs)} commits")
         zygote.run_jobs(fresh_jobs, parallel=2, deadline=deadline, log=log)
