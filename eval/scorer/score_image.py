@@ -139,6 +139,21 @@ def per_commit(kit, stdout: bytes, tests: list[dict], answers: dict) -> dict:
     return result
 
 
+def oracle_cost_ms(kit, failing: list[int], duration: dict[int, int]) -> int:
+    """Floor for one commit: run exactly its failing tests, packed longest-first
+    into the best number of workers (1..8). 0 when nothing fails."""
+    if not failing:
+        return 0
+    loads_by_k = []
+    ordered = sorted((duration[n] for n in failing), reverse=True)
+    for k in range(1, min(kit.MAXIMUM_WORKERS, len(ordered)) + 1):
+        loads = [0] * k
+        for d in ordered:
+            loads[loads.index(min(loads))] += d
+        loads_by_k.append(max(loads) + kit.WORKER_COST_MILLISECONDS * k)
+    return min(loads_by_k)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("image")
@@ -230,9 +245,14 @@ def main() -> int:
     # Per-kind table and miss list come from the first run of each batch.
     kinds: dict[str, dict] = {}
     misses = []
+    duration = {t["number"]: kit._duration_milliseconds(t["seconds"]) for t in tests}
+    oracle_total = 0
     for commit, row in sorted(commit_rows.items()):
         kind = answers[commit].get("kind", "unknown")
-        entry = kinds.setdefault(kind, {"commits": 0, "breaking": 0, "misses": 0, "cost_ms": 0})
+        entry = kinds.setdefault(kind, {"commits": 0, "breaking": 0, "misses": 0, "cost_ms": 0, "oracle_ms": 0})
+        row["oracle_ms"] = oracle_cost_ms(kit, answers[commit]["failing"], duration)
+        entry["oracle_ms"] += row["oracle_ms"]
+        oracle_total += row["oracle_ms"]
         entry["commits"] += 1
         entry["breaking"] += bool(answers[commit]["failing"])
         entry["cost_ms"] += row["cost_ms"]
@@ -245,6 +265,7 @@ def main() -> int:
         f"commits {len(commit_rows)}  batches {len(batches)}",
         f"simulated {simulated_ms / 1000:.3f} s  (selection {(simulated_ms - 300_000 * len(misses)) / 1000:.3f} s"
         f" + misses {len(misses)} x 300 s)",
+        f"oracle    {oracle_total / 1000:.3f} s  (only the failing tests, best packing; the floor)",
         f"cpu       {cpu_first / 1e6:.3f} s  (run 1)",
         f"total     {(simulated_ms * 1000 + cpu_first) / 1e6:.3f} s  (run 1)",
     ]
@@ -252,11 +273,12 @@ def main() -> int:
         middle = statistics.median_low(totals_by_run) if args.runs % 2 == 0 else statistics.median(totals_by_run)
         lines.append(f"middle of {args.runs} runs: {middle / 1e6:.1f} s  (all: {[round(t / 1e6, 1) for t in totals_by_run]})")
     lines.append("")
-    lines.append(f"{'kind':<16}{'commits':>8}{'breaking':>9}{'misses':>7}{'sim s':>10}{'mean s':>8}")
+    lines.append(f"{'kind':<24}{'commits':>8}{'breaking':>9}{'misses':>7}{'sim s':>10}{'mean s':>8}{'oracle s':>10}")
     for kind, entry in sorted(kinds.items()):
         sim = entry["cost_ms"] / 1000 + 300 * entry["misses"]
         lines.append(
-            f"{kind:<16}{entry['commits']:>8}{entry['breaking']:>9}{entry['misses']:>7}{sim:>10.1f}{sim / entry['commits']:>8.2f}"
+            f"{kind:<24}{entry['commits']:>8}{entry['breaking']:>9}{entry['misses']:>7}{sim:>10.1f}"
+            f"{sim / entry['commits']:>8.2f}{entry['oracle_ms'] / 1000:>10.1f}"
         )
     if misses:
         lines.append("")
@@ -269,6 +291,7 @@ def main() -> int:
     summary.update(
         {
             "simulated_ms": simulated_ms,
+            "oracle_ms": oracle_total,
             "cpu_usec_run1": cpu_first,
             "totals_usec_by_run": totals_by_run,
             "kinds": kinds,

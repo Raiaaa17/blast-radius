@@ -1321,6 +1321,126 @@ def op_recursion(rng, tree, path=None):
     )
 
 
+def op_leak(rng, tree, path=None):
+    """Retain every instance in a class-level list (memory/weakref tests notice)."""
+    path = path or rng.choice(["sqlglot/generator.py", "sqlglot/parser.py", "sqlglot/schema.py", "sqlglot/tokens.py", "sqlglot/dialects/dialect.py", "sqlglot/optimizer/scope.py"])
+    return _insert_at_function_start(
+        rng, tree, path,
+        lambda f: ['type(self)._instances = [*getattr(type(self), "_instances", ()), self]'],
+        "retain instances", lambda f: f.name == "__init__" and f.args.args and f.args.args[0].arg == "self",
+    )
+
+
+# classes, decorators, annotations -------------------------------------------
+
+
+def op_expr_add_class(rng, tree, path=None):
+    """Add a new Func expression class: it auto-registers by name in the parser's function table."""
+    path = path or rng.choice([p for p in tree.src if p.startswith("sqlglot/expressions/") and not p.endswith(("__init__.py", "core.py", "builders.py"))])
+    source = Source(tree.read(path))
+    if "Func" not in source.text:
+        return None
+    name = "".join(w.capitalize() for w in [_word(rng, 5), _word(rng, 4)])
+    body = rng.choice(["    pass\n", '    arg_types = {"this": True, "expression": False}\n'])
+    text = source.text.rstrip("\n") + f"\n\n\nclass {name}(Expression, Func):\n{body}"
+    if "from sqlglot.expressions.core import" not in text or "Expression" not in text.split("class ")[0]:
+        return None
+    return _edit_file(tree, path, text, f"{path} add new function expression {name}")
+
+
+def op_class_add_method(rng, tree, path=None):
+    """Add an unused method to a class (a generator/parser/dialect class or an expression)."""
+    path = path or pick_src(rng, tree, _dialect_area(rng))
+    source = Source(tree.read(path))
+    classes = [c for c in source.nodes(ast.ClassDef) if c.body and c.end_lineno]
+    if not classes:
+        return None
+    cls = rng.choice(classes)
+    last = cls.body[-1]
+    indent = source.indent_of(cls.body[0])
+    name = f"_{_word(rng, 5)}_helper"
+    method = f"\n{indent}def {name}(self, *args, **kwargs):\n{indent}    return None\n"
+    text = source.insert_lines(last.end_lineno + 1, method)
+    return _edit_file(tree, path, text, f"{path}:{cls.lineno} add unused method {cls.name}.{name}")
+
+
+def op_class_base(rng, tree, path=None):
+    """Change a class's base to its grandparent-ish: e.g. a dialect parser inheriting the base Parser."""
+    path = path or pick_src(rng, tree, rng.choice(["sqlglot/parsers/", "sqlglot/generators/", "sqlglot/dialects/"]))
+    source = Source(tree.read(path))
+    candidates = []
+    for cls in source.nodes(ast.ClassDef):
+        for base in cls.bases:
+            text = source.node_text(base)
+            if isinstance(base, ast.Name) and text.endswith(("Parser", "Generator", "Dialect")) and text not in ("Parser", "Generator", "Dialect"):
+                replacement = {"Parser": "parser.Parser", "Generator": "generator.Generator", "Dialect": "Dialect"}[
+                    next(k for k in ("Parser", "Generator", "Dialect") if text.endswith(k))
+                ]
+                module = replacement.split(".")[0]
+                if "." in replacement and not re.search(rf"^from sqlglot import .*\b{module}\b|^import sqlglot\.{module}|^from sqlglot import {module}", source.text, re.M):
+                    continue
+                if replacement == "Dialect" and not re.search(r"\bDialect\b", source.text.split("class ")[0]):
+                    continue
+                candidates.append((cls, base, replacement))
+    if not candidates:
+        return None
+    cls, base, replacement = rng.choice(candidates)
+    text = source.replace([(*source.span(base), replacement)])
+    return _edit_file(tree, path, text, f"{path}:{cls.lineno} base of {cls.name}: {source.node_text(base)} -> {replacement}")
+
+
+def op_decorator_remove(rng, tree, path=None):
+    path = path or pick_src(rng, tree)
+    source = Source(tree.read(path))
+    decorated = [
+        (f, d)
+        for f in source.functions()
+        for d in f.decorator_list
+        if d.lineno == d.end_lineno and source.lines[d.lineno - 1].strip().startswith("@")
+    ]
+    if not decorated:
+        return None
+    function, decorator = rng.choice(decorated)
+    shown = source.lines[decorator.lineno - 1].strip()
+    text = source.without_lines(decorator.lineno, decorator.lineno)
+    return _edit_file(tree, path, text, f"{path}:{decorator.lineno} remove `{shown}` from {function.name}()")
+
+
+def op_noop_annotation(rng, tree, path=None):
+    """Change a type annotation only (modules use `from __future__ import annotations`)."""
+    path = path or pick_src(rng, tree)
+    source = Source(tree.read(path))
+    if "from __future__ import annotations" not in source.text:
+        return None
+    annotations = [
+        a.annotation
+        for f in source.functions()
+        for a in f.args.args + f.args.kwonlyargs
+        if a.annotation is not None
+    ] + [f.returns for f in source.functions() if f.returns is not None]
+    if not annotations:
+        return None
+    node = rng.choice(annotations)
+    old = source.node_text(node)
+    new = "t.Any" if re.search(r"^import typing as t$", source.text, re.M) and old != "t.Any" else f"{old} | None"
+    text = source.replace([(*source.span(node), new)])
+    return _edit_file(tree, path, text, f"{path}:{node.lineno} annotation {old[:30]} -> {new[:30]}")
+
+
+def op_fixture_inline_comment(rng, tree, path=None):
+    """An inline `--` comment on a SQL line: not filtered, so it reaches the parser."""
+    path = path or pick_fixture(rng, tree)
+    text = tree.read(path)
+    lines = text.splitlines(keepends=True)
+    candidates = _fixture_lines(text)
+    if not candidates:
+        return None
+    i = rng.choice(candidates)
+    lines[i] = lines[i].rstrip("\n") + " -- " + rng.choice(["note", "keep", "see above"]) + "\n"
+    tree.write(path, "".join(lines))
+    return f"{path}:{i + 1} add inline `--` comment", [path]
+
+
 # --------------------------------------------------------------------------- kinds
 
 KINDS = {
@@ -1393,6 +1513,14 @@ KINDS = {
     "perf:busy-loop": op_perf,
     "perf:infinite-loop": op_loop,
     "perf:recursion": op_recursion,
+    "perf:leak": op_leak,
+    # classes, decorators, annotations
+    "class:add-expression": op_expr_add_class,
+    "class:add-method": op_class_add_method,
+    "class:base": op_class_base,
+    "code:decorator-remove": op_decorator_remove,
+    "noop:annotation": op_noop_annotation,
+    "fixture:inline-comment": op_fixture_inline_comment,
 }
 
 # Multi-file mixes, like the sample's "multi" (code + comment + fixture) and beyond.
