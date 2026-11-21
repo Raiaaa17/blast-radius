@@ -270,12 +270,26 @@ def class_impact(ix: Index, rel: str, qualname: str, names: set[str] | None) -> 
     return mask | ix.import_sensitive | ix.unreliable | ix.attrs_unknown
 
 
-def name_impact(ix: Index, rel: str, names: set[str], runtime: bool = False) -> int:
+def module_users(ix: Index, rel: str) -> int:
+    """The tests of a test module and of every module that (transitively) imports it."""
+    mask = ix.by_file.get(rel, 0)
+    for m in ix.importer_closure(module_name(rel)):
+        other = ix.modules.get(m)
+        if other:
+            mask |= ix.by_file.get(other, 0)
+    return mask
+
+
+def name_impact(ix: Index, rel: str, names: set[str], runtime: bool = False, removed: bool = False) -> int:
     """Tests that run code referencing the names (and the users of what they name).
 
     runtime=True: only run-time code counts. With the import state diffed, what a
-    class body built from a name at import is itself in the diff (as that class's
-    own changed attributes), so class bodies that mention the name add nothing.
+    sqlglot class body built from a name at import is itself in the diff (as that
+    class's own changed attributes), so sqlglot class bodies that mention the name
+    add nothing. Test modules are not in the state diff: their module and class
+    bodies that use the name count (all tests of the module), and their globals of
+    that name are the same object (a from-import). removed=True: the name is gone,
+    so every module that imports it at its top fails to import.
     """
     mod = module_name(rel)
     mask = ix.import_sensitive | ix.unreliable | ix.attrs_unknown
@@ -292,10 +306,11 @@ def name_impact(ix: Index, rel: str, names: set[str], runtime: bool = False) -> 
             path, kind, qn, first, last, _ = entry
             if path not in files or id(entry) in seen:
                 continue
-            if runtime and path != rel and ix.code_attr_names is not None:
-                # Another module reaches this module's global only as an attribute
-                # (module.NAME) or an import; a global of the same name there is its
-                # own (a from-import rebinding shows up as that module's changed slot).
+            in_tests = path.startswith("tests/")
+            if runtime and path != rel and not in_tests and ix.code_attr_names is not None:
+                # Another sqlglot module reaches this module's global only as an attribute
+                # (module.NAME) or an import; a global of the same name there is its own
+                # (a from-import rebinding shows up as that module's changed slot).
                 if name not in ix.code_attr_names.get(id(entry), frozenset((name,))):
                     continue
             seen.add(id(entry))
@@ -303,6 +318,12 @@ def name_impact(ix: Index, rel: str, names: set[str], runtime: bool = False) -> 
                 mask |= ix.lines_mask(path, first, last)
             elif kind == "class" and not runtime:
                 mask |= ix.class_use(f"{module_name(path)}:{qn}")
+            elif runtime and in_tests and (kind == "class" or (kind == "module" and removed)):
+                # A test module's own import uses the name: a class attribute built from it (all
+                # of the module's tests), or `from sqlglot import NAME` when NAME is gone (the
+                # module and every importer fail to collect). A from-import of a changed name
+                # only rebinds it; its callers are mapped through coverage.
+                mask |= module_users(ix, path) if removed else ix.by_file.get(path, 0)
     # The rebound objects themselves: a function's callers, a class's users.
     for _, kind, qn, first, last, _ in ix.codes_by_file.get(rel, ()):
         if qn in names:
@@ -779,7 +800,7 @@ def slots_mask(ix: Index, slots: list, modules: set[str], entries: dict | None =
                 mask |= got
                 notes.append(f"{mod}.{name}[{len(entries[slot])} entries]: {bin(got).count('1')}")
                 continue
-            got = name_impact(ix, rel, {name}, runtime=True)
+            got = name_impact(ix, rel, {name}, runtime=True, removed=slot in removed)
             if slot not in ix.state or slot in removed:
                 got |= namespace_listers(ix, "M", mod)
                 sid = ix.enums.get(("missM", mod, name))
